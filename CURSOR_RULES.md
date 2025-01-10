@@ -1,0 +1,14 @@
+# Cursor Rules (Guiding Principles)
+
+1. **Accessibility is Paramount:** Every decision, from component design to data fetching, must be evaluated through the lens of accessibility. Don't hesitate to over-engineer for accessibility.
+2. **Embrace Next.js Conventions:** Utilize Next.js features like API Routes, Server Components, and Static Site Generation (SSG) or Incremental Static Regeneration (ISR) where appropriate.
+3. **Prioritize Code Clarity and Maintainability:** Write clean, well-documented code. The migration is an opportunity to improve upon the existing codebases.
+4. **Iterate and Test Frequently:** Break down the migration into smaller, manageable steps. Test each component and feature thoroughly.
+5. **Challenge Assumptions:** Don't blindly replicate the existing code. Question whether there are better ways to achieve the same functionality within the Next.js ecosystem.
+6. **Refer to Source Code Constantly:** The existing repositories are the ultimate reference. Understand the logic and data flow before attempting to reimplement it.
+7. **Optimize for Performance:** Caching is crucial, but also consider other performance optimizations like code splitting and image optimization.
+8. **Don't Be Afraid to Refactor:** The migration is a chance to improve the architecture and code quality. If a better approach emerges, refactor.
+9. **Keep the User in Mind:** Remember the target audience and their specific needs. The website should be intuitive and easy to use.
+10. **Document Decisions:** Keep a record of significant decisions and the reasoning behind them. This includes updating project notes and cursor rules.
+11. **Address Feedback Promptly:** Pay close attention to feedback and incorporate it into the development process.
+12. **Reference Notes and Rules:** Actively refer to the project notes and cursor rules to ensure alignment with the project goals and principles.
