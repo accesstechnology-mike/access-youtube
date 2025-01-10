@@ -69,11 +69,31 @@ async function getYouTubeSearchResults(searchTerm) {
 }
 
 export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const searchTerm = searchParams.get('term');
+  // Get the search term from either the query parameter or the URL path
+  const { searchParams, pathname } = new URL(request.url);
+  let searchTerm = searchParams.get('term');
+
+  // If no query parameter, try to extract from pathname
+  if (!searchTerm && pathname.startsWith('/api/search/')) {
+    // Remove '/api/search/' from the start
+    searchTerm = pathname.slice('/api/search/'.length);
+  }
 
   if (!searchTerm) {
     return NextResponse.json({ error: 'Search term is required' }, { status: 400 });
+  }
+
+  // Sanitize the search term
+  searchTerm = searchTerm
+    // Decode URI components (convert %20 to spaces, etc)
+    .split('+')
+    .map(part => decodeURIComponent(part.trim()))
+    .filter(part => part.length > 0)  // Remove empty parts
+    .join(' ')
+    .trim();  // Remove leading/trailing spaces
+
+  if (!searchTerm) {
+    return NextResponse.json({ error: 'Search term cannot be empty' }, { status: 400 });
   }
 
   // Check for bad words in the search term *before* scraping

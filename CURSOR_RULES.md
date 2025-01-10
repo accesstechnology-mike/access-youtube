@@ -1,3 +1,5 @@
+Refer to project notes and keep these and these rules consistentenly updated.
+
 # Cursor Rules (Guiding Principles)
 
 1. **Accessibility is Paramount:** Every decision, from component design to data fetching, must be evaluated through the lens of accessibility. Don't hesitate to over-engineer for accessibility.
