@@ -1,3 +1,17 @@
+Refer to project notes and keep these and these rules consistentenly updated.
+
+We're not using typescript for some reason.
+
+Note, the user/app workflow is:
+
+Either, on / user searches for a term - this is sanitized and reroutes to /[...term]
+
+or user directly navigates to /[...term]
+
+Ob this page, we initially check for bad words in the search term. If any are found, we redirect to /
+
+Then we're fetching the search results from the api/search route and displaying them.
+
 # Cursor Rules (Guiding Principles)
 
 1. **Accessibility is Paramount:** Every decision, from component design to data fetching, must be evaluated through the lens of accessibility. Don't hesitate to over-engineer for accessibility.

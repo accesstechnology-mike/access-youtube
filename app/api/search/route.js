@@ -69,15 +69,8 @@ async function getYouTubeSearchResults(searchTerm) {
 }
 
 export async function GET(request) {
-  // Get the search term from either the query parameter or the URL path
-  const { searchParams, pathname } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   let searchTerm = searchParams.get('term');
-
-  // If no query parameter, try to extract from pathname
-  if (!searchTerm && pathname.startsWith('/api/search/')) {
-    // Remove '/api/search/' from the start
-    searchTerm = pathname.slice('/api/search/'.length);
-  }
 
   if (!searchTerm) {
     return NextResponse.json({ error: 'Search term is required' }, { status: 400 });
@@ -85,33 +78,19 @@ export async function GET(request) {
 
   // Sanitize the search term
   searchTerm = searchTerm
-    // Decode URI components (convert %20 to spaces, etc)
     .split('+')
     .map(part => decodeURIComponent(part.trim()))
-    .filter(part => part.length > 0)  // Remove empty parts
+    .filter(part => part.length > 0)
     .join(' ')
-    .trim();  // Remove leading/trailing spaces
+    .trim();
 
   if (!searchTerm) {
     return NextResponse.json({ error: 'Search term cannot be empty' }, { status: 400 });
   }
 
-  // Check for bad words in the search term *before* scraping
-  const isBad = await isBadWordPresent(searchTerm);
-  if (isBad) {
-    return NextResponse.json({ error: 'Search query contains inappropriate content.' }, { status: 400 });
-  }
-
   try {
-    const requestTime = Date.now();
     const { videos } = await getYouTubeSearchResults(searchTerm);
-    const executionTime = Date.now() - requestTime;
-    
-    // If execution time is very short (less than 50ms), it's likely cached
-    const cached = executionTime < 50;
-    console.log(`YouTube search results (cached: ${cached}, execution time: ${executionTime}ms)`);
-    
-    return NextResponse.json({ videos, cached });
+    return NextResponse.json({ videos });
   } catch (error) {
     console.error('Error during scraping:', error);
     return NextResponse.json({ error: 'Failed to fetch search results' }, { status: 500 });

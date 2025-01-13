@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import debounce from 'lodash/debounce';
+import { useState, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import debounce from "lodash/debounce";
 
-export default function SearchForm({ initialTerm = '' }) {
+export default function SearchForm({ initialTerm = "" }) {
   const [searchTerm, setSearchTerm] = useState(initialTerm);
   const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -26,35 +26,32 @@ export default function SearchForm({ initialTerm = '' }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Sanitize the search term
     const sanitizedTerm = searchTerm
       .split(/[\s+]+/)
-      .map(part => part.trim())
-      .filter(part => part.length > 0)
-      .join('+');
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0)
+      .join("+");
 
     if (!sanitizedTerm) {
-      setError('Please enter a search term');
+      setError("Please enter a search term");
       return;
     }
 
     if (sanitizedTerm.length > 100) {
-      setError('Search term is too long');
+      setError("Search term is too long");
       return;
     }
 
     try {
       setIsSearching(true);
-      // Navigate to the search URL, replacing current history entry if we're already on a search page
-      const isSearchPage = window.location.pathname.startsWith('/search/');
-      await router.push(`/search/${sanitizedTerm}`, { 
-        scroll: !isSearchPage // Only scroll to top if not already on search page
-      });
+      // Update: Remove leading slash to match Next.js catch-all route
+      await router.push(`${sanitizedTerm}`);
     } catch (err) {
-      console.error('Search error:', err);
-      setError('An error occurred while searching');
+      console.error("Search error:", err);
+      setError("An error occurred while navigating");
     } finally {
       setIsSearching(false);
     }
@@ -62,9 +59,9 @@ export default function SearchForm({ initialTerm = '' }) {
 
   return (
     <div className="w-full max-w-3xl mx-auto text-center">
-      <form 
-        onSubmit={handleSubmit} 
-        className="flex flex-col gap-4" 
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-4"
         role="search"
         aria-label="Search YouTube videos"
       >
@@ -81,7 +78,7 @@ export default function SearchForm({ initialTerm = '' }) {
               type="search"
               value={searchTerm}
               onChange={(e) => {
-                setError('');
+                setError("");
                 const newValue = e.target.value;
                 setSearchTerm(newValue);
                 debouncedSetSearchTerm(newValue);
@@ -100,28 +97,25 @@ export default function SearchForm({ initialTerm = '' }) {
             aria-label={isSearching ? "Searching..." : "Submit search"}
             disabled={isSearching}
           >
-            {isSearching ? 'Searching...' : 'Search'}
+            {isSearching ? "Searching..." : "Search"}
           </button>
         </div>
-        
+
         {error && (
-          <div 
-            id="search-error" 
-            role="alert" 
+          <div
+            id="search-error"
+            role="alert"
             className="text-red-600 text-sm"
             aria-live="polite"
           >
             {error}
           </div>
         )}
-        
-        <div 
-          aria-live="polite" 
-          className="sr-only"
-        >
-          {isSearching ? 'Searching for videos...' : ''}
+
+        <div aria-live="polite" className="sr-only">
+          {isSearching ? "Searching for videos..." : ""}
         </div>
       </form>
     </div>
   );
-} 
+}
