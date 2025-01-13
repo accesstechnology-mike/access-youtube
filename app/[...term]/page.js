@@ -2,47 +2,47 @@ import { redirect, RedirectType } from "next/navigation";
 import { Suspense } from "react";
 import SearchForm from "../components/SearchForm";
 import VideoResult from "../components/VideoResult";
-import sqlite3 from 'sqlite3';
-import path from 'path';
+import sqlite3 from "sqlite3";
+import path from "path";
 
 const MAX_TERM_LENGTH = 100;
 
 // Initialize the database connection
-const dbPath = path.join(process.cwd(), 'lib', 'db', 'db.sqlite');
+const dbPath = path.join(process.cwd(), "lib", "db", "db.sqlite");
 const db = new sqlite3.Database(dbPath);
 
 async function checkBadWords(term) {
-  'use server';
+  "use server";
   // Split on both + and spaces to get all individual words
   const words = term
-    .split(/[+\s]+/)  // Split on either + or whitespace
-    .map(part => decodeURIComponent(part.trim()))
-    .filter(word => word.length > 0)
-    .map(word => word.toLowerCase());
+    .split(/[+\s]+/) // Split on either + or whitespace
+    .map((part) => decodeURIComponent(part.trim()))
+    .filter((word) => word.length > 0)
+    .map((word) => word.toLowerCase());
 
   return new Promise((resolve, reject) => {
     // Get all bad words from DB first
-    db.all('SELECT word FROM bad_words', [], (err, rows) => {
+    db.all("SELECT word FROM bad_words", [], (err, rows) => {
       if (err) {
         console.error("Database error:", err);
         reject(err);
         return;
       }
-      
+
       // Create a Set of bad words for faster lookup
-      const badWords = new Set(rows.map(row => row.word));
-      
+      const badWords = new Set(rows.map((row) => row.word));
+
       // Check if any word in our search term is a bad word
-      const hasBadWord = words.some(word => badWords.has(word));
+      const hasBadWord = words.some((word) => badWords.has(word));
       resolve(hasBadWord);
     });
   });
 }
 
 async function getSearchResults(term) {
-  'use server';
+  "use server";
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const response = await fetch(
       `${baseUrl}/api/search?term=${encodeURIComponent(term)}`,
       {
@@ -76,7 +76,7 @@ export default async function SearchPage({ params }) {
 async function SearchPageContent({ params }) {
   // Properly await params
   const resolvedParams = await Promise.resolve(params);
-  
+
   // Get and validate the search term
   const termArray = resolvedParams?.term;
   if (!termArray?.[0]) {
@@ -85,40 +85,36 @@ async function SearchPageContent({ params }) {
 
   // Decode the term BEFORE validation
   const searchTerm = decodeURIComponent(termArray[0]);
-  
+
   if (searchTerm.length > MAX_TERM_LENGTH) {
     redirect("/");
   }
 
   try {
     const hasBadWords = await checkBadWords(searchTerm);
-    
+
     if (hasBadWords) {
       // Use permanent redirect for bad words
       redirect("/", RedirectType.permanent);
     }
   } catch (error) {
     // Don't log the redirect error
-    if (!error.message?.includes('NEXT_REDIRECT')) {
+    if (!error.message?.includes("NEXT_REDIRECT")) {
       console.error("Bad word check error:", error);
     }
     redirect("/");
   }
 
   // If we get here, the term is safe for display
-  const displayTerm = searchTerm
-    .split('+')
-    .join(' ');
+  const displayTerm = searchTerm.split("+").join(" ");
 
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <SearchForm initialTerm={displayTerm} />
-        <Suspense 
+        <Suspense
           fallback={
-            <div className="text-center py-8">
-              Loading search results...
-            </div>
+            <div className="text-center py-8">Loading search results...</div>
           }
         >
           <SearchResults searchTerm={displayTerm} />
