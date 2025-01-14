@@ -1,27 +1,31 @@
 import SearchForm from "./components/SearchForm";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-16">
-        <div className="flex flex-col items-center justify-center">
-          <SearchForm />
+    <main className="min-h-screen bg-dark flex items-center justify-center">
+      <div className="w-full max-w-3xl mx-auto px-6">
+        <div className="flex flex-col items-center">
+          <Image
+            src="/img/logo.png"
+            alt="access:youtube logo"
+            width={180}
+            height={180}
+            priority
+            className="mb-16 opacity-90"
+          />
 
-          <footer className="mt-16 text-center text-gray-600">
-            <p>
-              provided by{" "}
-              <a
-                href="https://accesstechnology.co.uk"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm"
-              >
-                access:technology
-              </a>
-            </p>
-            <p className="mt-2">
-              working with people. empowering through technology
-            </p>
+          <SearchForm autoFocus={true} />
+
+          <footer className="fixed bottom-8 text-center text-light/40 text-sm">
+            {/* <a
+              href="https://accesstechnology.co.uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-light/60 transition-colors"
+            >
+              access: technology
+            </a> */}
           </footer>
         </div>
       </div>

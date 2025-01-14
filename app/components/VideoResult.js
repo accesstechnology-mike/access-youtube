@@ -1,28 +1,34 @@
 import Link from "next/link";
 
-export default function VideoResult({ video }) {
+export default function VideoResult({ video, index }) {
+  // Create accesskey based on index (1-9, then 0, then a-z)
+  const getAccessKey = (i) => {
+    if (i < 9) return String(i + 1);
+    if (i === 9) return "0";
+    return String.fromCharCode(97 + (i - 10)); // a-z for 10+
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 flex gap-4 items-start">
-      <div className="flex-shrink-0">
-        <Link href={`/play/${video.id}`}>
+    <div className="w-full aspect-[4/3]">
+      <Link
+        href={`/play/${video.id}`}
+        className="block h-full group bg-light rounded-lg overflow-hidden border-2 border-light hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark transition-all focus-ring"
+        accessKey={getAccessKey(index)}
+      >
+        <div className="relative h-full flex flex-col">
           <img
             src={video.thumbnail}
             alt={video.title}
-            className="w-32 h-20 object-cover rounded-md"
+            className="w-full h-2/3 object-cover group-hover:opacity-90 transition-opacity"
             loading="lazy"
           />
-        </Link>
-      </div>
-      <div className="flex-1">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">
-          <Link href={`/play/${video.id}`} className="hover:underline">
-            {video.title}
-          </Link>
-        </h2>
-        <p className="text-gray-600 text-sm">
-          {video.duration} | {video.uploaded} | {video.views} views
-        </p>
-      </div>
+          <div className="flex-1 p-4 bg-light">
+            <h2 className="text-dark text-xl font-bold line-clamp-2 group-hover:text-primary-end group-focus:text-primary-end transition-colors">
+              {video.title}
+            </h2>
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }
