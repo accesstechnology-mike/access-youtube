@@ -28,7 +28,12 @@ function VideoPlayer({ params }) {
     if (searchResults.length === 0) {
       const fetchSearchResults = async () => {
         try {
-          const response = await fetch("/api/session/search", {
+          // Get the origin for the API call
+          const protocol = window.location.protocol;
+          const host = window.location.host;
+          const apiUrl = new URL("/api/session/search", `${protocol}//${host}`);
+
+          const response = await fetch(apiUrl, {
             cache: "no-store",
           });
           if (!response.ok) {

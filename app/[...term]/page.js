@@ -38,16 +38,18 @@ async function checkBadWords(term) {
 async function getSearchResults(term) {
   "use server";
   try {
-    // In production, use relative URL to ensure it works on any domain
-    const response = await fetch(
-      `/api/search?term=${encodeURIComponent(term)}`,
-      {
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    // Get the request headers to determine the origin
+    const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+    const host = process.env.VERCEL_URL || "localhost:3000";
+    const apiUrl = new URL(`/api/search`, `${protocol}://${host}`);
+    apiUrl.searchParams.set("term", term);
+
+    const response = await fetch(apiUrl, {
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!response.ok) {
       throw new Error("Search failed");
