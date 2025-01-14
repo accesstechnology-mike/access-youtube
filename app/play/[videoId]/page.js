@@ -28,7 +28,9 @@ function VideoPlayer({ params }) {
     if (searchResults.length === 0) {
       const fetchSearchResults = async () => {
         try {
-          const response = await fetch("/api/session/search");
+          const response = await fetch("/api/session/search", {
+            cache: "no-store",
+          });
           if (!response.ok) {
             throw new Error("Failed to fetch search results");
           }

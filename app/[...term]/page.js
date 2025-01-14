@@ -38,9 +38,9 @@ async function checkBadWords(term) {
 async function getSearchResults(term) {
   "use server";
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    // In production, use relative URL to ensure it works on any domain
     const response = await fetch(
-      `${baseUrl}/api/search?term=${encodeURIComponent(term)}`,
+      `/api/search?term=${encodeURIComponent(term)}`,
       {
         cache: "no-store",
         headers: {
