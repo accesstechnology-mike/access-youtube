@@ -1,69 +1,45 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const searchTerm = cookieStore.get("lastSearchTerm")?.value;
-  const lastVideoId = cookieStore.get("lastVideoId")?.value;
-
-  if (!searchTerm) {
-    return NextResponse.json(
-      { videos: [] },
-      {
-        headers: {
-          "x-search-term": "none",
-        },
-      }
-    );
-  }
-
   try {
-    const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-      }/api/search?term=${encodeURIComponent(searchTerm)}`,
-      {
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    // Get cookie store and wait for it
+    const cookieStore = await cookies();
+    const searchTerm = cookieStore.get("lastSearchTerm")?.value;
+
+    if (!searchTerm) {
+      return NextResponse.json({ videos: [] }, {
+        headers: { "x-search-term": "none" }
+      });
+    }
+
+    // Use same URL construction as [...term]/page.js
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || "localhost:3000";
+    const protocol = host === "localhost:3000" ? "http" : "https";
+    const apiUrl = new URL(`/api/search`, `${protocol}://${host}`);
+    apiUrl.searchParams.set("term", searchTerm);
+
+    const response = await fetch(apiUrl, {
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!response.ok) {
       throw new Error("Search failed");
     }
 
     const data = await response.json();
-    const videos = data.videos || [];
+    
+    return NextResponse.json(data, {
+      headers: { "x-search-term": searchTerm }
+    });
 
-    // Find the current index if we have a video ID
-    let currentIndex = 0;
-    if (lastVideoId) {
-      const foundIndex = videos.findIndex((v) => v.id === lastVideoId);
-      if (foundIndex !== -1) {
-        currentIndex = foundIndex;
-      }
-    }
-
-    return NextResponse.json(
-      { videos, currentIndex },
-      {
-        headers: {
-          "x-search-term": searchTerm,
-          "x-current-index": currentIndex.toString(),
-        },
-      }
-    );
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch search results" },
-      {
-        status: 500,
-        headers: {
-          "x-search-term": "error",
-        },
-      }
-    );
+    console.error("Session search error:", error);
+    return NextResponse.json({ error: "Failed to fetch search results" }, {
+      headers: { "x-search-term": "error" }
+    });
   }
 }
