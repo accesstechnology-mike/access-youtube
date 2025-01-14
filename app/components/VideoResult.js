@@ -23,7 +23,10 @@ export default function VideoResult({ video, index }) {
             loading="lazy"
           />
           <div className="flex-1 p-4 sm:pt-2 bg-light">
-            <h2 className="text-dark text-xl sm:text-xl lg:text-base xl:text-xl font-bold line-clamp-2 text-center group-hover:text-primary-end group-focus:text-primary-end transition-colors">
+            <h2
+              aria-hidden="true"
+              className="text-dark text-xl sm:text-xl lg:text-base xl:text-xl font-bold line-clamp-2 text-center group-hover:text-primary-end group-focus:text-primary-end transition-colors"
+            >
               {video.title}
             </h2>
           </div>
