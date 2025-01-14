@@ -135,6 +135,34 @@ function VideoPlayer({ params }) {
     },
   };
 
+  useEffect(() => {
+    const handleKeyboardShortcuts = (event) => {
+      if (event.altKey) {
+        switch (event.key.toLowerCase()) {
+          case "n":
+            handleNext();
+            event.preventDefault();
+            break;
+          case "p":
+            handlePlayPause();
+            event.preventDefault();
+            break;
+          case "r":
+            handleRepeat();
+            event.preventDefault();
+            break;
+          case "b":
+            handleBack();
+            event.preventDefault();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyboardShortcuts);
+    return () => window.removeEventListener("keydown", handleKeyboardShortcuts);
+  }, [handleNext, handlePlayPause, handleRepeat, handleBack]);
+
   return (
     <main className="h-screen bg-dark flex flex-col">
       <div className="container mx-auto px-4 py-4 flex-shrink-0">
@@ -173,7 +201,6 @@ function VideoPlayer({ params }) {
 
           <button
             onClick={handleNext}
-            accessKey="n"
             className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">

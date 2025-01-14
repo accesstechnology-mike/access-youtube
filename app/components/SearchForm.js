@@ -66,33 +66,41 @@ export default function SearchForm({ initialTerm = "", autoFocus = false }) {
         role="search"
         aria-label="Search YouTube videos"
         className="relative"
+        method="POST"
+        action={`/${encodeURIComponent(searchTerm.trim())}`}
       >
-        <input
-          ref={inputRef}
-          type="search"
-          value={searchTerm}
-          onChange={(e) => {
-            setError("");
-            const newValue = e.target.value;
-            setSearchTerm(newValue);
-            debouncedSetSearchTerm(newValue);
-          }}
-          placeholder="type here..."
-          className="input-primary text-2xl h-16"
-          aria-label="Search YouTube videos"
-          aria-invalid={!!error}
-          aria-describedby={error ? "search-error" : undefined}
-          disabled={isSearching}
-        />
+        <div className="grid-clickable-group">
+          <input
+            ref={inputRef}
+            type="search"
+            name="v"
+            value={searchTerm}
+            onChange={(e) => {
+              setError("");
+              const newValue = e.target.value;
+              setSearchTerm(newValue);
+              debouncedSetSearchTerm(newValue);
+            }}
+            placeholder="type here..."
+            className="input-primary text-2xl h-16"
+            aria-label="Search YouTube videos"
+            aria-invalid={!!error}
+            aria-describedby={error ? "search-error" : undefined}
+            disabled={isSearching}
+            autoComplete="off"
+            role="searchbox"
+          />
 
-        <button
-          type="submit"
-          className="absolute right-2 top-2 btn-primary h-12 w-24"
-          aria-label={isSearching ? "Searching..." : "Search"}
-          disabled={isSearching}
-        >
-          Search
-        </button>
+          <button
+            type="submit"
+            className="absolute right-2 top-2 btn-primary h-12 w-24"
+            aria-label={isSearching ? "Searching..." : "Search"}
+            disabled={isSearching}
+            role="button"
+          >
+            Search
+          </button>
+        </div>
 
         {error && (
           <div
