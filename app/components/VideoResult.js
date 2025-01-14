@@ -22,8 +22,8 @@ export default function VideoResult({ video, index }) {
             className="w-full h-2/3 object-cover group-hover:opacity-90 transition-opacity"
             loading="lazy"
           />
-          <div className="flex-1 p-4 bg-light">
-            <h2 className="text-dark text-xl font-bold line-clamp-2 group-hover:text-primary-end group-focus:text-primary-end transition-colors">
+          <div className="flex-1 p-4 sm:pt-2 bg-light">
+            <h2 className="text-dark text-xl sm:text-xl lg:text-base xl:text-xl font-bold line-clamp-2 text-center group-hover:text-primary-end group-focus:text-primary-end transition-colors">
               {video.title}
             </h2>
           </div>
