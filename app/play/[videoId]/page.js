@@ -173,7 +173,6 @@ function VideoPlayer({ params }) {
         <div className="grid grid-cols-4 gap-2 mb-4 mt-2">
           <button
             onClick={handlePlayPause}
-            accessKey="p"
             className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">
@@ -188,7 +187,6 @@ function VideoPlayer({ params }) {
 
           <button
             onClick={handleRepeat}
-            accessKey="r"
             className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">
@@ -213,7 +211,6 @@ function VideoPlayer({ params }) {
 
           <button
             onClick={handleBack}
-            accessKey="b"
             className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">

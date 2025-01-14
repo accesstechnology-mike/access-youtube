@@ -52,9 +52,10 @@ export default function SearchForm({ initialTerm = "", autoFocus = false }) {
     setError("");
 
     try {
-      router.push(`/${encodeURIComponent(searchTerm.trim())}`);
+      await router.push(`/${encodeURIComponent(searchTerm.trim())}`);
     } catch (err) {
       setError("An error occurred. Please try again.");
+    } finally {
       setIsSearching(false);
     }
   };
