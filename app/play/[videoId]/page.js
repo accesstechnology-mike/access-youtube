@@ -28,7 +28,7 @@ function VideoPlayer({ params }) {
     if (searchResults.length === 0) {
       const fetchSearchResults = async () => {
         try {
-          // Get the origin for the API call
+          // Use current window location for client-side API calls
           const protocol = window.location.protocol;
           const host = window.location.host;
           const apiUrl = new URL("/api/session/search", `${protocol}//${host}`);

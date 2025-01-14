@@ -38,9 +38,9 @@ async function checkBadWords(term) {
 async function getSearchResults(term) {
   "use server";
   try {
-    // Get the request headers to determine the origin
+    // In production, use the project's production URL, otherwise use localhost
     const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-    const host = process.env.VERCEL_URL || "localhost:3000";
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || "localhost:3000";
     const apiUrl = new URL(`/api/search`, `${protocol}://${host}`);
     apiUrl.searchParams.set("term", term);
 
