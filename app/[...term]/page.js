@@ -39,8 +39,8 @@ async function getSearchResults(term) {
   "use server";
   try {
     // In production, use the project's production URL, otherwise use localhost
-    const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
     const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || "localhost:3000";
+    const protocol = host === "localhost:3000" ? "http" : "https";
     const apiUrl = new URL(`/api/search`, `${protocol}://${host}`);
     apiUrl.searchParams.set("term", term);
 
