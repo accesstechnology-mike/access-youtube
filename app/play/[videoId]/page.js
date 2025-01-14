@@ -32,7 +32,7 @@ export default function PlayPage({ params }) {
           throw new Error("Failed to fetch search results");
         }
         const data = await response.json();
-        setSearchResults(data.videos?.slice(0, 12) || []);
+        setSearchResults(data.videos || []);
 
         // Get the search term from the API response headers
         const apiSearchTerm = response.headers.get("x-search-term");
@@ -40,13 +40,12 @@ export default function PlayPage({ params }) {
           setSearchTerm(decodeURIComponent(apiSearchTerm));
         }
 
-        // Find current video index
-        if (data.videos?.length) {
-          const index = data.videos.findIndex((v) => v.id === videoId);
-          if (index !== -1) {
-            setCurrentVideoIndex(index);
-          }
-        }
+        // Set the current index from the API
+        const apiIndex = parseInt(
+          response.headers.get("x-current-index") || "0",
+          10
+        );
+        setCurrentVideoIndex(apiIndex);
       } catch (error) {
         console.error("Error fetching search results:", error);
         setSearchTerm("error");

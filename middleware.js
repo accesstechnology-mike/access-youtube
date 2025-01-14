@@ -14,14 +14,27 @@ export async function middleware(request) {
         sameSite: "strict",
         path: "/",
       });
+      // Reset the index when starting a new search
+      response.cookies.set("currentIndex", "0", {
+        httpOnly: true,
+        sameSite: "strict",
+        path: "/",
+      });
     }
   }
 
-  // Keep the session alive when navigating to video player
+  // Keep the session alive and update index when navigating to video player
   if (request.nextUrl.pathname.startsWith("/play/")) {
     const lastSearchTerm = request.cookies.get("lastSearchTerm")?.value;
+    const videoId = request.nextUrl.pathname.split("/")[2];
     if (lastSearchTerm) {
       response.cookies.set("lastSearchTerm", lastSearchTerm, {
+        httpOnly: true,
+        sameSite: "strict",
+        path: "/",
+      });
+      // Store the video ID to help track position
+      response.cookies.set("lastVideoId", videoId, {
         httpOnly: true,
         sameSite: "strict",
         path: "/",
