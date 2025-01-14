@@ -4,7 +4,24 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import debounce from "lodash/debounce";
 
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [matches, query]);
+
+  return matches;
+}
+
 export default function SearchForm({ initialTerm = "", autoFocus = false }) {
+  const isMobile = useMediaQuery("(max-width: 639px)");
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -60,7 +77,7 @@ export default function SearchForm({ initialTerm = "", autoFocus = false }) {
             setSearchTerm(newValue);
             debouncedSetSearchTerm(newValue);
           }}
-          placeholder="Search YouTube videos..."
+          placeholder="type here..."
           className="input-primary text-2xl h-16"
           aria-label="Search YouTube videos"
           aria-invalid={!!error}

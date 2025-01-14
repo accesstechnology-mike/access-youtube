@@ -142,17 +142,17 @@ function VideoPlayer({ params }) {
       </div>
 
       <div className="container mx-auto px-4 flex-shrink-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 mt-2">
+        <div className="grid grid-cols-4 gap-2 mb-4 mt-2">
           <button
             onClick={handlePlayPause}
             accessKey="p"
-            className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
+            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">
-              <span className="text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
+              <span className="text-2xl sm:text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
                 {isPlaying ? <HiPauseCircle /> : <HiPlayCircle />}
               </span>
-              <h2 className="text-dark text-lg font-bold">
+              <h2 className="text-dark text-sm sm:text-lg font-bold">
                 {isPlaying ? "Pause" : "Play"}
               </h2>
             </div>
@@ -161,39 +161,39 @@ function VideoPlayer({ params }) {
           <button
             onClick={handleRepeat}
             accessKey="r"
-            className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
+            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">
-              <span className="text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
+              <span className="text-2xl sm:text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
                 <FaRepeat />
               </span>
-              <h2 className="text-dark text-lg font-bold">Repeat video</h2>
+              <h2 className="text-dark text-sm sm:text-lg font-bold">Repeat</h2>
             </div>
           </button>
 
           <button
             onClick={handleNext}
             accessKey="n"
-            className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
+            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">
-              <span className="text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
+              <span className="text-2xl sm:text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
                 <HiForward />
               </span>
-              <h2 className="text-dark text-lg font-bold">Next video</h2>
+              <h2 className="text-dark text-sm sm:text-lg font-bold">Next</h2>
             </div>
           </button>
 
           <button
             onClick={handleBack}
             accessKey="b"
-            className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
+            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">
-              <span className="text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
+              <span className="text-2xl sm:text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
                 <HiArrowLeftCircle />
               </span>
-              <h2 className="text-dark text-lg font-bold">Back to results</h2>
+              <h2 className="text-dark text-sm sm:text-lg font-bold">Back</h2>
             </div>
           </button>
         </div>

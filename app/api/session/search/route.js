@@ -8,9 +8,12 @@ export async function GET() {
     const searchTerm = cookieStore.get("lastSearchTerm")?.value;
 
     if (!searchTerm) {
-      return NextResponse.json({ videos: [] }, {
-        headers: { "x-search-term": "none" }
-      });
+      return NextResponse.json(
+        { videos: [] },
+        {
+          headers: { "x-search-term": "none" },
+        }
+      );
     }
 
     // Use same URL construction as [...term]/page.js
@@ -31,15 +34,17 @@ export async function GET() {
     }
 
     const data = await response.json();
-    
-    return NextResponse.json(data, {
-      headers: { "x-search-term": searchTerm }
-    });
 
+    return NextResponse.json(data, {
+      headers: { "x-search-term": searchTerm },
+    });
   } catch (error) {
     console.error("Session search error:", error);
-    return NextResponse.json({ error: "Failed to fetch search results" }, {
-      headers: { "x-search-term": "error" }
-    });
+    return NextResponse.json(
+      { error: "Failed to fetch search results" },
+      {
+        headers: { "x-search-term": "error" },
+      }
+    );
   }
 }
