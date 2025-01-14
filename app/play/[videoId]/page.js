@@ -6,37 +6,55 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SearchForm from "@/components/SearchForm";
+import {
+  HiPlayCircle,
+  HiPauseCircle,
+  HiArrowPath,
+  HiForward,
+  HiArrowLeft,
+} from "react-icons/hi2";
 
 export default function PlayPage({ params }) {
-  const { videoId, searchTerm } = params;
+  const { videoId } = params;
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [searchResults, setSearchResults] = useState([]);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("loading...");
   const router = useRouter();
   const [player, setPlayer] = useState(null);
 
   useEffect(() => {
-    // Fetch search results based on the searchTerm
+    // Fetch search results based on the session search term
     const fetchSearchResults = async () => {
       try {
-        const term = searchTerm ? searchTerm.join(" ") : "";
-        if (term) {
-          const response = await fetch(
-            `/api/search?term=${encodeURIComponent(term)}`
-          );
-          if (!response.ok) {
-            throw new Error("Failed to fetch search results");
+        const response = await fetch("/api/session/search");
+        if (!response.ok) {
+          throw new Error("Failed to fetch search results");
+        }
+        const data = await response.json();
+        setSearchResults(data.videos?.slice(0, 12) || []);
+
+        // Get the search term from the API response headers
+        const apiSearchTerm = response.headers.get("x-search-term");
+        if (apiSearchTerm) {
+          setSearchTerm(decodeURIComponent(apiSearchTerm));
+        }
+
+        // Find current video index
+        if (data.videos?.length) {
+          const index = data.videos.findIndex((v) => v.id === videoId);
+          if (index !== -1) {
+            setCurrentVideoIndex(index);
           }
-          const data = await response.json();
-          setSearchResults(data.videos?.slice(0, 12) || []);
         }
       } catch (error) {
         console.error("Error fetching search results:", error);
+        setSearchTerm("error");
       }
     };
 
     fetchSearchResults();
-  }, [searchTerm]);
+  }, [videoId]);
 
   const handlePlayerReady = (event) => {
     setPlayer(event.target);
@@ -70,16 +88,19 @@ export default function PlayPage({ params }) {
     if (searchResults.length === 0) return;
     const nextIndex = (currentVideoIndex + 1) % searchResults.length;
     setCurrentVideoIndex(nextIndex);
-    router.push(
-      `/play/${searchResults[nextIndex].id}/${searchTerm?.join("/") || ""}`
-    );
-  }, [currentVideoIndex, searchResults, router, searchTerm]);
+    router.push(`/play/${searchResults[nextIndex].id}`);
+  }, [currentVideoIndex, searchResults, router]);
 
   const handleBack = useCallback(() => {
-    if (!searchTerm) {
-      router.push("/");
+    if (
+      searchTerm &&
+      searchTerm !== "loading..." &&
+      searchTerm !== "error" &&
+      searchTerm !== "none"
+    ) {
+      router.push(`/${encodeURIComponent(searchTerm)}`);
     } else {
-      router.push(`/${searchTerm.join("/")}`);
+      router.push("/");
     }
   }, [router, searchTerm]);
 
@@ -107,14 +128,14 @@ export default function PlayPage({ params }) {
       </div>
 
       <div className="container mx-auto px-4 flex-shrink-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 mt-2">
           <button
             onClick={handlePlayPause}
             accessKey="p"
             className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
-            <span className="text-3xl mb-1 block text-primary-end group-hover:scale-110 transition-transform">
-              {isPlaying ? "⏸" : "▶"}
+            <span className="text-4xl mb-1 block text-primary-start group-hover:scale-110 transition-transform">
+              {isPlaying ? <HiPauseCircle /> : <HiPlayCircle />}
             </span>
             <h2 className="text-dark text-lg font-bold">
               {isPlaying ? "Pause" : "Play"}
@@ -126,8 +147,8 @@ export default function PlayPage({ params }) {
             accessKey="r"
             className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
-            <span className="text-3xl mb-1 block text-primary-end group-hover:scale-110 transition-transform">
-              🔄
+            <span className="text-4xl mb-1 block text-primary-start group-hover:scale-110 transition-transform">
+              <HiArrowPath />
             </span>
             <h2 className="text-dark text-lg font-bold">Repeat video</h2>
           </button>
@@ -137,8 +158,8 @@ export default function PlayPage({ params }) {
             accessKey="n"
             className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
-            <span className="text-3xl mb-1 block text-primary-end group-hover:scale-110 transition-transform">
-              ⏭
+            <span className="text-4xl mb-1 block text-primary-start group-hover:scale-110 transition-transform">
+              <HiForward />
             </span>
             <h2 className="text-dark text-lg font-bold">Next video</h2>
           </button>
@@ -148,8 +169,8 @@ export default function PlayPage({ params }) {
             accessKey="b"
             className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
-            <span className="text-3xl mb-1 block text-primary-end group-hover:scale-110 transition-transform">
-              ↩
+            <span className="text-4xl mb-1 block text-primary-start group-hover:scale-110 transition-transform">
+              <HiArrowLeft />
             </span>
             <h2 className="text-dark text-lg font-bold">Back to results</h2>
           </button>
