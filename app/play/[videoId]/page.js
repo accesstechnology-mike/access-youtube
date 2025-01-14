@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, use, Suspense } from "react";
 import YouTube from "react-youtube";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,13 +9,13 @@ import SearchForm from "@/components/SearchForm";
 import {
   HiPlayCircle,
   HiPauseCircle,
-  HiArrowPath,
   HiForward,
-  HiArrowLeft,
+  HiArrowLeftCircle,
 } from "react-icons/hi2";
+import { FaRepeat } from "react-icons/fa6";
 
-export default function PlayPage({ params }) {
-  const { videoId } = params;
+function VideoPlayer({ params }) {
+  const { videoId } = use(params);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [searchResults, setSearchResults] = useState([]);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -24,36 +24,44 @@ export default function PlayPage({ params }) {
   const [player, setPlayer] = useState(null);
 
   useEffect(() => {
-    // Fetch search results based on the session search term
-    const fetchSearchResults = async () => {
-      try {
-        const response = await fetch("/api/session/search");
-        if (!response.ok) {
-          throw new Error("Failed to fetch search results");
-        }
-        const data = await response.json();
-        setSearchResults(data.videos || []);
+    // Only fetch if we don't have results yet
+    if (searchResults.length === 0) {
+      const fetchSearchResults = async () => {
+        try {
+          const response = await fetch("/api/session/search");
+          if (!response.ok) {
+            throw new Error("Failed to fetch search results");
+          }
+          const data = await response.json();
+          setSearchResults(data.videos || []);
 
-        // Get the search term from the API response headers
-        const apiSearchTerm = response.headers.get("x-search-term");
-        if (apiSearchTerm) {
-          setSearchTerm(decodeURIComponent(apiSearchTerm));
-        }
+          // Get the search term from the API response headers
+          const apiSearchTerm = response.headers.get("x-search-term");
+          if (apiSearchTerm) {
+            setSearchTerm(decodeURIComponent(apiSearchTerm));
+          }
 
-        // Set the current index from the API
-        const apiIndex = parseInt(
-          response.headers.get("x-current-index") || "0",
-          10
-        );
-        setCurrentVideoIndex(apiIndex);
-      } catch (error) {
-        console.error("Error fetching search results:", error);
-        setSearchTerm("error");
+          // Set the current index from the API
+          const apiIndex = parseInt(
+            response.headers.get("x-current-index") || "0",
+            10
+          );
+          setCurrentVideoIndex(apiIndex);
+        } catch (error) {
+          console.error("Error fetching search results:", error);
+          setSearchTerm("error");
+        }
+      };
+
+      fetchSearchResults();
+    } else {
+      // If we have results, just update the current index based on the videoId
+      const newIndex = searchResults.findIndex((video) => video.id === videoId);
+      if (newIndex !== -1) {
+        setCurrentVideoIndex(newIndex);
       }
-    };
-
-    fetchSearchResults();
-  }, [videoId]);
+    }
+  }, [videoId, searchResults]);
 
   const handlePlayerReady = (event) => {
     setPlayer(event.target);
@@ -133,12 +141,14 @@ export default function PlayPage({ params }) {
             accessKey="p"
             className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
-            <span className="text-4xl mb-1 block text-primary-start group-hover:scale-110 transition-transform">
-              {isPlaying ? <HiPauseCircle /> : <HiPlayCircle />}
-            </span>
-            <h2 className="text-dark text-lg font-bold">
-              {isPlaying ? "Pause" : "Play"}
-            </h2>
+            <div className="flex flex-col items-center">
+              <span className="text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
+                {isPlaying ? <HiPauseCircle /> : <HiPlayCircle />}
+              </span>
+              <h2 className="text-dark text-lg font-bold">
+                {isPlaying ? "Pause" : "Play"}
+              </h2>
+            </div>
           </button>
 
           <button
@@ -146,10 +156,12 @@ export default function PlayPage({ params }) {
             accessKey="r"
             className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
-            <span className="text-4xl mb-1 block text-primary-start group-hover:scale-110 transition-transform">
-              <HiArrowPath />
-            </span>
-            <h2 className="text-dark text-lg font-bold">Repeat video</h2>
+            <div className="flex flex-col items-center">
+              <span className="text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
+                <FaRepeat />
+              </span>
+              <h2 className="text-dark text-lg font-bold">Repeat video</h2>
+            </div>
           </button>
 
           <button
@@ -157,10 +169,12 @@ export default function PlayPage({ params }) {
             accessKey="n"
             className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
-            <span className="text-4xl mb-1 block text-primary-start group-hover:scale-110 transition-transform">
-              <HiForward />
-            </span>
-            <h2 className="text-dark text-lg font-bold">Next video</h2>
+            <div className="flex flex-col items-center">
+              <span className="text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
+                <HiForward />
+              </span>
+              <h2 className="text-dark text-lg font-bold">Next video</h2>
+            </div>
           </button>
 
           <button
@@ -168,10 +182,12 @@ export default function PlayPage({ params }) {
             accessKey="b"
             className="bg-light rounded-lg py-3 px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
-            <span className="text-4xl mb-1 block text-primary-start group-hover:scale-110 transition-transform">
-              <HiArrowLeft />
-            </span>
-            <h2 className="text-dark text-lg font-bold">Back to results</h2>
+            <div className="flex flex-col items-center">
+              <span className="text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
+                <HiArrowLeftCircle />
+              </span>
+              <h2 className="text-dark text-lg font-bold">Back to results</h2>
+            </div>
           </button>
         </div>
       </div>
@@ -188,5 +204,13 @@ export default function PlayPage({ params }) {
         />
       </div>
     </main>
+  );
+}
+
+export default function PlayPage({ params }) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VideoPlayer params={params} />
+    </Suspense>
   );
 }
