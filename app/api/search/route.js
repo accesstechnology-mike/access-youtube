@@ -79,6 +79,10 @@ async function getYouTubeSearchResults(searchTerm) {
 }
 
 async function extractRenderData(html) {
+  if (!html) {
+    console.error("HTML is undefined, cannot extract render data.");
+    return null;
+  }
   try {
     const renderData = html.split("ytInitialData = ")[1]?.split(";</script>")[0];
     if (!renderData) {
