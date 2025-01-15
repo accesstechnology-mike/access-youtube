@@ -78,6 +78,21 @@ async function getYouTubeSearchResults(searchTerm) {
   return { videos: searchResults.videos };
 }
 
+async function extractRenderData(html) {
+  try {
+    const renderData = html.split("ytInitialData = ")[1]?.split(";</script>")[0];
+    if (!renderData) {
+      console.error("Could not find ytInitialData in the HTML");
+      return null;
+    }
+    const parsedData = JSON.parse(renderData);
+    return parsedData;
+  } catch (error) {
+    console.error("Error parsing render data:", error);
+    return null;
+  }
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   let searchTerm = searchParams.get("term");
