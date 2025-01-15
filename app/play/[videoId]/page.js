@@ -11,6 +11,7 @@ import {
   HiArrowLeftCircle,
 } from "react-icons/hi2";
 import { FaRepeat } from "react-icons/fa6";
+import { sendGAEvent } from '@next/third-parties/google';
 
 function VideoPlayer({ params }) {
   const { videoId } = use(params);
@@ -102,6 +103,12 @@ function VideoPlayer({ params }) {
     if (isDirectVideo) {
       const videoData = event.target.getVideoData();
       if (videoData?.title) {
+        // Track video load
+        sendGAEvent('video_start', {
+          video_id: videoId,
+          video_title: videoData.title
+        });
+
         // Check for bad words in title
         const hasBadWords = await checkBadWords(videoData.title);
         if (hasBadWords) {
@@ -138,9 +145,31 @@ function VideoPlayer({ params }) {
 
   const handlePlayerStateChange = (event) => {
     setIsPlaying(event.data === 1);
-    if (event.data === 0) {
-      // Video ended
-      handleNext();
+    
+    // Track video events based on player state
+    const videoData = player?.getVideoData();
+    const videoTitle = videoData?.title || 'Unknown';
+    
+    switch(event.data) {
+      case YouTube.PlayerState.PLAYING:
+        sendGAEvent('video_play', {
+          video_id: videoId,
+          video_title: videoTitle
+        });
+        break;
+      case YouTube.PlayerState.PAUSED:
+        sendGAEvent('video_pause', {
+          video_id: videoId,
+          video_title: videoTitle
+        });
+        break;
+      case YouTube.PlayerState.ENDED:
+        sendGAEvent('video_complete', {
+          video_id: videoId,
+          video_title: videoTitle
+        });
+        handleNext();
+        break;
     }
   };
 
@@ -312,6 +341,7 @@ function VideoPlayer({ params }) {
               showinfo: 0,
               playsinline: 1,
               mute: 1, // Start muted to help with autoplay
+              enablejsapi: 1, // Enable JavaScript API
             },
           }}
           onReady={handlePlayerReady}
