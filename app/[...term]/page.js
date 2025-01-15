@@ -13,6 +13,18 @@ const MAX_TERM_LENGTH = 100;
 const dbPath = path.join(process.cwd(), "lib", "db", "db.sqlite");
 const db = new sqlite3.Database(dbPath);
 
+// Generate metadata for the page
+export async function generateMetadata({ params }) {
+  const termArray = params?.term;
+  if (!termArray?.[0]) return {};
+  
+  const searchTerm = decodeURIComponent(termArray[0]);
+  return {
+    title: `Search Results for "${searchTerm}" - access: youtube`,
+    description: `YouTube search results for "${searchTerm}" with enhanced accessibility features`,
+  };
+}
+
 async function checkBadWords(term) {
   "use server";
   const words = term

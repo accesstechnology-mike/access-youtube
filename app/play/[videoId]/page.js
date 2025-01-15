@@ -22,8 +22,18 @@ function VideoPlayer({ params }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasPlaylist, setHasPlaylist] = useState(false);
   const [isDirectVideo, setIsDirectVideo] = useState(false);
+  const [videoTitle, setVideoTitle] = useState("");
   const router = useRouter();
   const [player, setPlayer] = useState(null);
+
+  // Update document title when video title changes
+  useEffect(() => {
+    if (videoTitle) {
+      document.title = `${videoTitle} - access: youtube`;
+    } else {
+      document.title = "access: youtube - Enhanced Accessibility YouTube Search";
+    }
+  }, [videoTitle]);
 
   // Check session data on mount
   useEffect(() => {
@@ -49,6 +59,11 @@ function VideoPlayer({ params }) {
             setIsDirectVideo(false);
             setSearchResults(videos);
             setCurrentVideoIndex(currentVideoIndex);
+            // Set video title from search results
+            const currentVideo = videos[currentVideoIndex];
+            if (currentVideo?.title) {
+              setVideoTitle(currentVideo.title);
+            }
             
             const apiSearchTerm = sessionResponse.headers.get("x-search-term");
             if (apiSearchTerm && apiSearchTerm !== "none") {
@@ -103,6 +118,7 @@ function VideoPlayer({ params }) {
     if (isDirectVideo) {
       const videoData = event.target.getVideoData();
       if (videoData?.title) {
+        setVideoTitle(videoData.title);
         // Track video load
         sendGAEvent('video_start', {
           video_id: videoId,
