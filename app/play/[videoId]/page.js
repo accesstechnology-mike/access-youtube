@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, use, Suspense } from "react";
-import YouTube from "react-youtube";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
+import YouTube from "react-youtube";
 import SearchForm from "@/components/SearchForm";
 import {
   HiPlayCircle,
@@ -19,60 +17,123 @@ function VideoPlayer({ params }) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [searchResults, setSearchResults] = useState([]);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("loading...");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasPlaylist, setHasPlaylist] = useState(false);
+  const [isDirectVideo, setIsDirectVideo] = useState(false);
   const router = useRouter();
   const [player, setPlayer] = useState(null);
 
+  // Check session data on mount
   useEffect(() => {
-    // Only fetch if we don't have results yet
-    if (searchResults.length === 0) {
-      const fetchSearchResults = async () => {
-        try {
-          // Use current window location for client-side API calls
-          const protocol = window.location.protocol;
-          const host = window.location.host;
-          const apiUrl = new URL("/api/session/search", `${protocol}//${host}`);
+    const fetchSessionResults = async () => {
+      try {
+        setIsLoading(true);
+        const protocol = window.location.protocol;
+        const host = window.location.host;
 
-          const response = await fetch(apiUrl, {
-            cache: "no-store",
-          });
-          if (!response.ok) {
-            throw new Error("Failed to fetch search results");
+        const sessionResponse = await fetch(
+          new URL("/api/session/search", `${protocol}//${host}`),
+          { cache: 'no-store' }
+        );
+        
+        if (sessionResponse.ok) {
+          const data = await sessionResponse.json();
+          const videos = data.videos || [];
+          const currentVideoIndex = videos.findIndex(v => v.id === videoId);
+          
+          // If video is in search results, use those
+          if (currentVideoIndex !== -1) {
+            setHasPlaylist(true);
+            setIsDirectVideo(false);
+            setSearchResults(videos);
+            setCurrentVideoIndex(currentVideoIndex);
+            
+            const apiSearchTerm = sessionResponse.headers.get("x-search-term");
+            if (apiSearchTerm && apiSearchTerm !== "none") {
+              setSearchTerm(decodeURIComponent(apiSearchTerm));
+            }
+          } else {
+            setIsDirectVideo(true);
           }
-          const data = await response.json();
-          setSearchResults(data.videos || []);
-
-          // Get the search term from the API response headers
-          const apiSearchTerm = response.headers.get("x-search-term");
-          if (apiSearchTerm) {
-            setSearchTerm(decodeURIComponent(apiSearchTerm));
-          }
-
-          // Set the current index from the API
-          const apiIndex = parseInt(
-            response.headers.get("x-current-index") || "0",
-            10
-          );
-          setCurrentVideoIndex(apiIndex);
-        } catch (error) {
-          console.error("Error fetching search results:", error);
-          setSearchTerm("error");
+        } else {
+          setIsDirectVideo(true);
         }
-      };
+      } catch (error) {
+        console.error("Error fetching session results:", error);
+        setIsDirectVideo(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      fetchSearchResults();
-    } else {
-      // If we have results, just update the current index based on the videoId
-      const newIndex = searchResults.findIndex((video) => video.id === videoId);
-      if (newIndex !== -1) {
-        setCurrentVideoIndex(newIndex);
+    fetchSessionResults();
+  }, [videoId]);
+
+  const checkBadWords = async (title) => {
+    try {
+      const protocol = window.location.protocol;
+      const host = window.location.host;
+      const checkUrl = new URL("/api/check-words", `${protocol}//${host}`);
+      const response = await fetch(checkUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: title }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Bad word check failed');
+      }
+
+      const { hasBadWords } = await response.json();
+      return hasBadWords;
+    } catch (error) {
+      console.error('Bad word check error:', error);
+      return false;
+    }
+  };
+
+  const handlePlayerReady = async (event) => {
+    setPlayer(event.target);
+    
+    // If this is a direct video access, get title and set up playlist
+    if (isDirectVideo) {
+      const videoData = event.target.getVideoData();
+      if (videoData?.title) {
+        // Check for bad words in title
+        const hasBadWords = await checkBadWords(videoData.title);
+        if (hasBadWords) {
+          router.push('/');
+          return;
+        }
+
+        setSearchTerm(videoData.title);
+        // Fetch related videos using title
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        const searchUrl = new URL("/api/search", `${protocol}//${host}`);
+        searchUrl.searchParams.set("term", videoData.title);
+
+        try {
+          const response = await fetch(searchUrl, { cache: 'no-store' });
+          if (response.ok) {
+            const data = await response.json();
+            const videos = (data.videos || []).filter(v => v.id !== videoId);
+            setSearchResults(videos);
+            setHasPlaylist(videos.length > 0);
+          }
+        } catch (error) {
+          console.error("Error fetching related videos:", error);
+        }
       }
     }
-  }, [videoId, searchResults]);
 
-  const handlePlayerReady = (event) => {
-    setPlayer(event.target);
-    event.target.playVideo();
+    // Start playback
+    setTimeout(() => {
+      event.target.playVideo();
+    }, 100);
   };
 
   const handlePlayerStateChange = (event) => {
@@ -99,26 +160,35 @@ function VideoPlayer({ params }) {
   }, [player]);
 
   const handleNext = useCallback(() => {
-    if (searchResults.length === 0) return;
-    const nextIndex = (currentVideoIndex + 1) % searchResults.length;
-    setCurrentVideoIndex(nextIndex);
-    router.push(`/play/${searchResults[nextIndex].id}`);
-  }, [currentVideoIndex, searchResults, router]);
+    if (!hasPlaylist || searchResults.length === 0) return;
+    
+    if (isDirectVideo) {
+      // For direct videos, just go to the first related video
+      router.push(`/play/${searchResults[0].id}`);
+    } else {
+      // For search results, cycle through the playlist
+      const nextIndex = (currentVideoIndex + 1) % searchResults.length;
+      setCurrentVideoIndex(nextIndex);
+      router.push(`/play/${searchResults[nextIndex].id}`);
+    }
+  }, [currentVideoIndex, searchResults, router, hasPlaylist, isDirectVideo]);
 
   const handleBack = useCallback(() => {
-    if (
-      searchTerm &&
-      searchTerm !== "loading..." &&
-      searchTerm !== "error" &&
-      searchTerm !== "none"
-    ) {
+    if (isDirectVideo) {
+      // For direct videos, search for the video title
+      router.push(`/${encodeURIComponent(searchTerm)}`);
+    } else if (searchTerm && searchTerm !== "none") {
+      // For videos from search, go back to search results
       router.push(`/${encodeURIComponent(searchTerm)}`);
     } else {
       router.push("/");
     }
-  }, [router, searchTerm]);
+  }, [router, searchTerm, isDirectVideo]);
 
-  const currentVideo = searchResults[currentVideoIndex] || { id: videoId };
+  const currentVideo = {
+    id: videoId,
+    ...(searchResults.find(v => v.id === videoId) || {})
+  };
 
   const opts = {
     width: "100%",
@@ -200,6 +270,7 @@ function VideoPlayer({ params }) {
           <button
             onClick={handleNext}
             className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
+            aria-label={hasPlaylist ? "Next video" : "Next video (no playlist available)"}
           >
             <div className="flex flex-col items-center">
               <span className="text-2xl sm:text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
@@ -226,8 +297,23 @@ function VideoPlayer({ params }) {
       {/* Video player */}
       <div className="flex-1 bg-black">
         <YouTube
-          videoId={currentVideo.id}
-          opts={opts}
+          videoId={videoId}
+          opts={{
+            width: "100%",
+            height: "100%",
+            playerVars: {
+              autoplay: 1,
+              controls: 1,
+              disablekb: 0,
+              fs: 0,
+              iv_load_policy: 3,
+              modestbranding: 1,
+              rel: 0,
+              showinfo: 0,
+              playsinline: 1,
+              mute: 1, // Start muted to help with autoplay
+            },
+          }}
           onReady={handlePlayerReady}
           onStateChange={handlePlayerStateChange}
           className="w-full h-full"

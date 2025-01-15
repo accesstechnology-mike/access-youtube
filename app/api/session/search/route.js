@@ -11,7 +11,10 @@ export async function GET() {
       return NextResponse.json(
         { videos: [] },
         {
-          headers: { "x-search-term": "none" },
+          headers: { 
+            "x-search-term": "none",
+            "Cache-Control": "no-store"
+          },
         }
       );
     }
@@ -23,7 +26,7 @@ export async function GET() {
     apiUrl.searchParams.set("term", searchTerm);
 
     const response = await fetch(apiUrl, {
-      cache: "no-store",
+      cache: 'no-store',
       headers: {
         "Content-Type": "application/json",
       },
@@ -36,14 +39,21 @@ export async function GET() {
     const data = await response.json();
 
     return NextResponse.json(data, {
-      headers: { "x-search-term": searchTerm },
+      headers: {
+        "x-search-term": searchTerm,
+        "Cache-Control": "no-store"
+      },
     });
   } catch (error) {
     console.error("Session search error:", error);
     return NextResponse.json(
       { error: "Failed to fetch search results" },
       {
-        headers: { "x-search-term": "error" },
+        status: 500,
+        headers: {
+          "x-search-term": "error",
+          "Cache-Control": "no-store",
+        },
       }
     );
   }
