@@ -23,6 +23,7 @@ function VideoPlayer({ params }) {
   const [hasPlaylist, setHasPlaylist] = useState(false);
   const [isDirectVideo, setIsDirectVideo] = useState(false);
   const [videoTitle, setVideoTitle] = useState("");
+  const [sessionChecked, setSessionChecked] = useState(false);
   const router = useRouter();
   const [player, setPlayer] = useState(null);
 
@@ -37,29 +38,29 @@ function VideoPlayer({ params }) {
 
   // Check session data on mount
   useEffect(() => {
+    let isSubscribed = true;
     const fetchSessionResults = async () => {
+      if (!videoId) return;
       try {
-        setIsLoading(true);
         const protocol = window.location.protocol;
         const host = window.location.host;
 
         const sessionResponse = await fetch(
-          new URL("/api/session/search", `${protocol}//${host}`),
-          { cache: 'no-store' }
+          new URL(`/api/session/search?videoId=${videoId}`, `${protocol}//${host}`),
+          { cache: 'force-cache' }
         );
         
+        if (!isSubscribed) return;
         if (sessionResponse.ok) {
           const data = await sessionResponse.json();
           const videos = data.videos || [];
           const currentVideoIndex = videos.findIndex(v => v.id === videoId);
-          
-          // If video is in search results, use those
+
           if (currentVideoIndex !== -1) {
             setHasPlaylist(true);
             setIsDirectVideo(false);
             setSearchResults(videos);
             setCurrentVideoIndex(currentVideoIndex);
-            // Set video title from search results
             const currentVideo = videos[currentVideoIndex];
             if (currentVideo?.title) {
               setVideoTitle(currentVideo.title);
@@ -79,11 +80,17 @@ function VideoPlayer({ params }) {
         console.error("Error fetching session results:", error);
         setIsDirectVideo(true);
       } finally {
-        setIsLoading(false);
+        if (isSubscribed) {
+          setIsLoading(false);
+          setSessionChecked(true);
+        }
       }
     };
 
     fetchSessionResults();
+    return () => {
+      isSubscribed = false;
+    };
   }, [videoId]);
 
   const checkBadWords = async (title) => {
@@ -114,17 +121,12 @@ function VideoPlayer({ params }) {
   const handlePlayerReady = async (event) => {
     setPlayer(event.target);
     
-    // If this is a direct video access, get title and set up playlist
-    if (isDirectVideo) {
+    // Only proceed with direct video logic if session check is complete
+    if (isDirectVideo && sessionChecked) {
       const videoData = event.target.getVideoData();
       if (videoData?.title) {
         setVideoTitle(videoData.title);
-        // Track video load
-        sendGAEvent('video_start', {
-          video_id: videoId,
-          video_title: videoData.title
-        });
-
+        
         // Check for bad words in title
         const hasBadWords = await checkBadWords(videoData.title);
         if (hasBadWords) {
@@ -133,14 +135,15 @@ function VideoPlayer({ params }) {
         }
 
         setSearchTerm(videoData.title);
-        // Fetch related videos using title
+        
+        // Only fetch related videos for direct videos
         const protocol = window.location.protocol;
         const host = window.location.host;
         const searchUrl = new URL("/api/search", `${protocol}//${host}`);
         searchUrl.searchParams.set("term", videoData.title);
 
         try {
-          const response = await fetch(searchUrl, { cache: 'no-store' });
+          const response = await fetch(searchUrl, { cache: 'force-cache' });
           if (response.ok) {
             const data = await response.json();
             const videos = (data.videos || []).filter(v => v.id !== videoId);
@@ -152,6 +155,12 @@ function VideoPlayer({ params }) {
         }
       }
     }
+
+    // Track video load for all videos
+    sendGAEvent('video_start', {
+      video_id: videoId,
+      video_title: videoTitle || event.target.getVideoData()?.title || 'Unknown'
+    });
 
     // Start playback
     setTimeout(() => {
