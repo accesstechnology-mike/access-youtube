@@ -15,7 +15,8 @@ const db = new sqlite3.Database(dbPath);
 
 // Generate metadata for the page
 export async function generateMetadata({ params }) {
-  const termArray = params?.term;
+  const resolvedParams = await Promise.resolve(params);
+  const termArray = resolvedParams?.term;
   if (!termArray?.[0]) return {};
   
   const searchTerm = decodeURIComponent(termArray[0]);
