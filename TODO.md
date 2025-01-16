@@ -1,6 +1,12 @@
-Cache user session playlist alongside search term
+Move badwords to API route in middleware
+
+Check what the other middleware is doing
+
+Cache user session playlist alongside search term - presumably done in the ...term route?
 
 Use user session cache for next button and isDirect check on play route
+
+Run bad word check on video title, if isDirect is true.
 
 Populate next and back from new searchs on play route (e.g. once we've establed isDirect correctly)
 
