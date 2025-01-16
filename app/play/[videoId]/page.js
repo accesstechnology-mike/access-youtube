@@ -78,8 +78,7 @@ function VideoPlayer({ params }) {
   const handlePlayerStateChange = (event) => {
     setIsPlaying(event.data === 1);
     if (event.data === 0) {
-      // Video ended
-      handleNext();
+      // Video ended - do nothing
     }
   };
 
