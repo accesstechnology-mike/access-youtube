@@ -5,6 +5,8 @@
 /* Viewport height fix for mobile browsers */
 :root {
   --app-height: 100%;
+  --viewport-height: 100vh;
+  --viewport-width: 100vw;
 }
 
 @supports (-webkit-touch-callout: none) {
@@ -93,6 +95,11 @@ body {
 
 .focus-ring {
   @apply focus:outline-none focus:ring-4 focus:ring-primary-start focus:ring-offset-4 focus:ring-offset-dark;
+}
+
+/* Add this to ensure smooth transitions */
+.h-\[var\(--viewport-height\)\] {
+  transition: height 0.3s ease;
 }
 
 @layer components {

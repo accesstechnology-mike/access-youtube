@@ -2,6 +2,9 @@ import "./globals.css";
 
 export const viewport = {
   themeColor: "#2e1433",
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content"
 };
 
 export const metadata = {

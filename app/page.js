@@ -1,10 +1,14 @@
+"use client";
+
 import SearchForm from "./components/SearchForm";
 import Image from "next/image";
-import { useAppHeight } from "@/hooks/useAppHeight";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 
 export default function HomePage() {
+  useVisualViewport();
+
   return (
-    <main className="h-[100dvh] bg-dark flex flex-col">
+    <main className="h-[var(--viewport-height)] bg-dark flex flex-col">
       <div className="flex-1 flex items-center justify-center -mt-16">
         <div className="w-full max-w-3xl mx-auto px-6">
           <div className="flex flex-col items-center">
