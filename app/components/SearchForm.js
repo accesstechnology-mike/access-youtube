@@ -28,11 +28,17 @@ export default function SearchForm() {
   const router = useRouter();
   const inputRef = useRef(null);
   const pathname = usePathname();
+  const hasMounted = useRef(false);
 
-  // Always focus on mount/update
+  // Always focus on desktop, never on mobile
   useEffect(() => {
-    inputRef.current?.focus();
-  });
+    if (hasMounted.current) return; // Skip if not first mount
+    hasMounted.current = true;
+
+    if (!isMobile && inputRef.current) {
+      inputRef.current?.focus();
+    }
+  }, [isMobile]);
 
   // Clear search term when we're on the home page
   useEffect(() => {
@@ -73,6 +79,11 @@ export default function SearchForm() {
 
   return (
     <div className="w-full">
+      {/* Debug indicator */}
+      {/* <div className="fixed top-0 right-0 bg-primary-start text-light px-2 py-1 text-xs z-50">
+        isMobile: {isMobile ? 'true' : 'false'}
+      </div> */}
+
       <form
         onSubmit={handleSubmit}
         role="search"
