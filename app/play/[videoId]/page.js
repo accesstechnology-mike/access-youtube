@@ -13,6 +13,7 @@ import {
   HiArrowLeftCircle,
 } from "react-icons/hi2";
 import { FaRepeat } from "react-icons/fa6";
+import { useAppHeight } from "@/hooks/useAppHeight";
 
 function VideoPlayer({ params }) {
   const { videoId } = use(params);
@@ -22,6 +23,8 @@ function VideoPlayer({ params }) {
   const [searchTerm, setSearchTerm] = useState("loading...");
   const router = useRouter();
   const [player, setPlayer] = useState(null);
+
+  useAppHeight();
 
   useEffect(() => {
     // Only fetch if we don't have results yet
@@ -163,7 +166,7 @@ function VideoPlayer({ params }) {
   }, [handleNext, handlePlayPause, handleRepeat, handleBack]);
 
   return (
-    <main className="h-screen bg-dark flex flex-col">
+    <main className="h-[100dvh] bg-dark flex flex-col">
       <div className="container mx-auto px-4 py-4 flex-shrink-0">
         <SearchForm autoFocus={false} />
       </div>
