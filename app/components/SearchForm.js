@@ -20,104 +20,40 @@ function useMediaQuery(query) {
   return matches;
 }
 
-export default function SearchForm({ initialTerm = "", autoFocus = false }) {
-  const isMobile = useMediaQuery("(max-width: 639px)");
+export default function SearchForm({ autoFocus = false }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [error, setError] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
   const inputRef = useRef(null);
+  const isMobile = useMediaQuery("(max-width: 640px)");
 
-  useEffect(() => {
-    if (autoFocus && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [autoFocus]);
-
-  const debouncedSetSearchTerm = useCallback(
-    debounce((term) => {
-      setSearchTerm(term);
-    }, 300),
-    []
-  );
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!searchTerm.trim()) {
-      router.push("/");
-      return;
-    }
-
-    setIsSearching(true);
-    setError("");
-
-    try {
-      await router.push(`/${encodeURIComponent(searchTerm.trim())}`);
-    } catch (err) {
-      setError("An error occurred. Please try again.");
-    } finally {
-      setIsSearching(false);
+    if (searchTerm.trim()) {
+      router.push(`/${encodeURIComponent(searchTerm.trim())}`);
+      setSearchTerm(""); // Clear the form after submission
     }
   };
 
+  // Focus the input on mount if autoFocus is true and not on mobile
+  useEffect(() => {
+    if (autoFocus && !isMobile && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus, isMobile]);
+
   return (
-    <div className="w-full">
-      <form
-        onSubmit={handleSubmit}
-        role="search"
-        aria-label="Search YouTube videos"
-        className="relative"
-        method="POST"
-        action={`/${encodeURIComponent(searchTerm.trim())}`}
-      >
-        <div className="grid-clickable-group">
-          <input
-            ref={inputRef}
-            type="search"
-            name="v"
-            value={searchTerm}
-            onChange={(e) => {
-              setError("");
-              const newValue = e.target.value;
-              setSearchTerm(newValue);
-              debouncedSetSearchTerm(newValue);
-            }}
-            placeholder="type here..."
-            className="input-primary text-2xl h-16"
-            aria-label="Search YouTube videos"
-            aria-invalid={!!error}
-            aria-describedby={error ? "search-error" : undefined}
-            disabled={isSearching}
-            autoComplete="off"
-            role="searchbox"
-          />
-
-          <button
-            type="submit"
-            className="absolute right-2 top-2 btn-primary h-12 w-24"
-            aria-label={isSearching ? "Searching..." : "Search"}
-            disabled={isSearching}
-            role="button"
-          >
-            Search
-          </button>
-        </div>
-
-        {error && (
-          <div
-            id="search-error"
-            role="alert"
-            className="absolute top-full left-0 mt-2 text-primary-start"
-            aria-live="polite"
-          >
-            {error}
-          </div>
-        )}
-
-        <div aria-live="polite" className="sr-only">
-          {isSearching ? "Searching for videos..." : ""}
-        </div>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search YouTube..."
+          className="w-full px-4 py-3 text-xl text-dark rounded-lg focus:outline-none focus:ring-4 focus:ring-primary-start/50 input-primary"
+          aria-label="Search YouTube"
+        />
+      </div>
+    </form>
   );
 }

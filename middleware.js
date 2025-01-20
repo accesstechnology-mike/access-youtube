@@ -1,11 +1,50 @@
 import { NextResponse } from "next/server";
 
-export async function middleware(request) {
-  const response = NextResponse.next();
+// We'll move the bad words check to an API route and call it from middleware
+async function checkBadWords(term) {
+  try {
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || "localhost:3000";
+    const protocol = host === "localhost:3000" ? "http" : "https";
+    const apiUrl = new URL(`/api/check-bad-words`, `${protocol}://${host}`);
+    apiUrl.searchParams.set("term", term);
 
-  // Store search term in session when navigating to search results
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Bad words check failed');
+    }
+    
+    const { hasBadWords } = await response.json();
+    return hasBadWords;
+  } catch (error) {
+    console.error('Bad words check error:', error);
+    return false;
+  }
+}
+
+export async function middleware(request) {
+  // Only check bad words for the [...term] route
   if (request.nextUrl.pathname.match(/^\/[^/]+$/)) {
     const searchTerm = decodeURIComponent(request.nextUrl.pathname.slice(1));
+    
+    try {
+      const hasBadWords = await checkBadWords(searchTerm);
+      
+      if (hasBadWords) {
+        return NextResponse.redirect(new URL('/', request.url), {
+          status: 308 // Permanent redirect
+        });
+      }
+    } catch (error) {
+      console.error("Bad word check error:", error);
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
+    // If no bad words, continue with the existing middleware logic
+    const response = NextResponse.next();
+    
     // Only update the session if it's a new search term
     const currentSearchTerm = request.cookies.get("lastSearchTerm")?.value;
     if (searchTerm !== currentSearchTerm) {
@@ -21,10 +60,13 @@ export async function middleware(request) {
         path: "/",
       });
     }
+    
+    return response;
   }
 
-  // Keep the session alive and update index when navigating to video player
+  // Handle other routes
   if (request.nextUrl.pathname.startsWith("/play/")) {
+    const response = NextResponse.next();
     const lastSearchTerm = request.cookies.get("lastSearchTerm")?.value;
     const videoId = request.nextUrl.pathname.split("/")[2];
     if (lastSearchTerm) {
@@ -33,16 +75,16 @@ export async function middleware(request) {
         sameSite: "strict",
         path: "/",
       });
-      // Store the video ID to help track position
       response.cookies.set("lastVideoId", videoId, {
         httpOnly: true,
         sameSite: "strict",
         path: "/",
       });
     }
+    return response;
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

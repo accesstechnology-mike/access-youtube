@@ -10,7 +10,7 @@ Run bad word check on video title, if isDirect is true.
 
 Populate next and back from new searchs on play route (e.g. once we've establed isDirect correctly)
 
-Check mobile viewport, home page and video player
+Check mobile viewport, home page and video player [X]
 
 Ensure London deployment on Vercel
 

@@ -1,39 +1,11 @@
-import { redirect, RedirectType } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 import SearchForm from "../components/SearchForm";
 import VideoResult from "../components/VideoResult";
 import Image from "next/image";
-import sqlite3 from "sqlite3";
-import path from "path";
 
 const MAX_TERM_LENGTH = 100;
-
-// Initialize the database connection
-const dbPath = path.join(process.cwd(), "lib", "db", "db.sqlite");
-const db = new sqlite3.Database(dbPath);
-
-async function checkBadWords(term) {
-  "use server";
-  const words = term
-    .split(/[+\s]+/)
-    .map((part) => decodeURIComponent(part.trim()))
-    .filter((word) => word.length > 0)
-    .map((word) => word.toLowerCase());
-
-  return new Promise((resolve, reject) => {
-    db.all("SELECT word FROM bad_words", [], (err, rows) => {
-      if (err) {
-        console.error("Database error:", err);
-        reject(err);
-        return;
-      }
-      const badWords = new Set(rows.map((row) => row.word));
-      const hasBadWord = words.some((word) => badWords.has(word));
-      resolve(hasBadWord);
-    });
-  });
-}
 
 async function getSearchResults(term) {
   "use server";
@@ -85,25 +57,12 @@ async function SearchPageContent({ params }) {
     redirect("/");
   }
 
-  try {
-    const hasBadWords = await checkBadWords(searchTerm);
-
-    if (hasBadWords) {
-      redirect("/", RedirectType.permanent);
-    }
-  } catch (error) {
-    if (!error.message?.includes("NEXT_REDIRECT")) {
-      console.error("Bad word check error:", error);
-    }
-    redirect("/");
-  }
-
   const displayTerm = searchTerm.split("+").join(" ");
 
   return (
     <main className="min-h-screen bg-dark">
       <div className="container mx-auto px-4 py-8">
-        <SearchForm initialTerm={displayTerm} />
+        <SearchForm />
         <Suspense
           fallback={
             <div className="text-center py-8 text-light/70">
@@ -135,15 +94,21 @@ async function SearchResults({ searchTerm }) {
           <div role="alert" className="text-primary-start text-center">
             {searchResults.error}
           </div>
+        ) : limitedVideos?.length === 0 ? (
+          <div 
+            role="alert" 
+            className="text-primary-start text-center"
+            aria-live="polite"
+          >
+            No videos found for "{searchTerm}"
+          </div>
         ) : (
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             role="region"
-            aria-label={`${
-              limitedVideos?.length || 0
-            } search results for ${searchTerm}`}
+            aria-label={`${limitedVideos.length} search results for ${searchTerm}`}
           >
-            {limitedVideos?.map((video, index) => (
+            {limitedVideos.map((video, index) => (
               <VideoResult key={video.id} video={video} index={index} />
             ))}
           </div>
