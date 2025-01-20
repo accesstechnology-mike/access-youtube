@@ -94,15 +94,21 @@ async function SearchResults({ searchTerm }) {
           <div role="alert" className="text-primary-start text-center">
             {searchResults.error}
           </div>
+        ) : !limitedVideos?.length ? (
+          <div 
+            role="alert" 
+            className="text-primary-start text-center text-xl"
+            aria-live="polite"
+          >
+            No videos found for "{searchTerm}". Please try a different search.
+          </div>
         ) : (
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             role="region"
-            aria-label={`${
-              limitedVideos?.length || 0
-            } search results for ${searchTerm}`}
+            aria-label={`${limitedVideos.length} search results for ${searchTerm}`}
           >
-            {limitedVideos?.map((video, index) => (
+            {limitedVideos.map((video, index) => (
               <VideoResult key={video.id} video={video} index={index} />
             ))}
           </div>

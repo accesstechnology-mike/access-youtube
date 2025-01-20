@@ -21,7 +21,6 @@ function useMediaQuery(query) {
 }
 
 export default function SearchForm() {
-  const formKey = useRef(Date.now()).current;
   const isMobile = useMediaQuery("(max-width: 639px)");
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
@@ -73,7 +72,7 @@ export default function SearchForm() {
   };
 
   return (
-    <div className="w-full" key={formKey}>
+    <div className="w-full">
       <form
         onSubmit={handleSubmit}
         role="search"

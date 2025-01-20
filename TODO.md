@@ -1,8 +1,8 @@
 Move badwords to API route in middleware [X]
 
-Clear searchform on every load
+Clear searchform on every load [X]
 
-Notice for zero video results
+Notice for zero video results [X]
 
 Check what the other middleware is doing
 
