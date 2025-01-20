@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import debounce from "lodash/debounce";
 
 function useMediaQuery(query) {
@@ -20,40 +20,116 @@ function useMediaQuery(query) {
   return matches;
 }
 
-export default function SearchForm({ autoFocus = false }) {
+export default function SearchForm() {
+  const formKey = useRef(Date.now()).current;
+  const isMobile = useMediaQuery("(max-width: 639px)");
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
   const inputRef = useRef(null);
-  const isMobile = useMediaQuery("(max-width: 640px)");
+  const pathname = usePathname();
 
-  const handleSubmit = (e) => {
+  // Always focus on mount/update
+  useEffect(() => {
+    inputRef.current?.focus();
+  });
+
+  // Clear search term when we're on the home page
+  useEffect(() => {
+    if (pathname === '/') {
+      setSearchTerm("");
+    }
+  }, [pathname]);
+
+  const debouncedSetSearchTerm = useCallback(
+    debounce((term) => {
+      setSearchTerm(term);
+    }, 300),
+    []
+  );
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
-      router.push(`/${encodeURIComponent(searchTerm.trim())}`);
-      setSearchTerm(""); // Clear the form after submission
+    const termToSearch = searchTerm.trim();
+    
+    if (!termToSearch) {
+      router.push("/");
+      return;
+    }
+
+    setIsSearching(true);
+    setError("");
+
+    try {
+      await router.push(`/${encodeURIComponent(termToSearch)}`);
+      // Clear after navigation starts
+      setTimeout(() => setSearchTerm(""), 50);
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setIsSearching(false);
     }
   };
 
-  // Focus the input on mount if autoFocus is true and not on mobile
-  useEffect(() => {
-    if (autoFocus && !isMobile && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [autoFocus, isMobile]);
-
   return (
-    <form onSubmit={handleSubmit} className="w-full">
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search YouTube..."
-          className="w-full px-4 py-3 text-xl text-dark rounded-lg focus:outline-none focus:ring-4 focus:ring-primary-start/50 input-primary"
-          aria-label="Search YouTube"
-        />
-      </div>
-    </form>
+    <div className="w-full" key={formKey}>
+      <form
+        onSubmit={handleSubmit}
+        role="search"
+        aria-label="Search YouTube videos"
+        className="relative"
+        method="POST"
+        action={`/${encodeURIComponent(searchTerm.trim())}`}
+      >
+        <div className="grid-clickable-group">
+          <input
+            ref={inputRef}
+            type="search"
+            name="v"
+            value={searchTerm}
+            onChange={(e) => {
+              setError("");
+              const newValue = e.target.value;
+              setSearchTerm(newValue);
+              debouncedSetSearchTerm(newValue);
+            }}
+            placeholder="type here..."
+            className="input-primary text-2xl h-16"
+            aria-label="Search YouTube videos"
+            aria-invalid={!!error}
+            aria-describedby={error ? "search-error" : undefined}
+            disabled={isSearching}
+            autoComplete="off"
+            role="searchbox"
+          />
+
+          <button
+            type="submit"
+            className="absolute right-2 top-2 btn-primary h-12 w-24"
+            aria-label={isSearching ? "Searching..." : "Search"}
+            disabled={isSearching}
+            role="button"
+          >
+            Search
+          </button>
+        </div>
+
+        {error && (
+          <div
+            id="search-error"
+            role="alert"
+            className="absolute top-full left-0 mt-2 text-primary-start"
+            aria-live="polite"
+          >
+            {error}
+          </div>
+        )}
+
+        <div aria-live="polite" className="sr-only">
+          {isSearching ? "Searching for videos..." : ""}
+        </div>
+      </form>
+    </div>
   );
 }

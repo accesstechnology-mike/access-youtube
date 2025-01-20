@@ -62,7 +62,7 @@ async function SearchPageContent({ params }) {
   return (
     <main className="min-h-screen bg-dark">
       <div className="container mx-auto px-4 py-8">
-        <SearchForm />
+        <SearchForm initialTerm={displayTerm} />
         <Suspense
           fallback={
             <div className="text-center py-8 text-light/70">
@@ -94,21 +94,15 @@ async function SearchResults({ searchTerm }) {
           <div role="alert" className="text-primary-start text-center">
             {searchResults.error}
           </div>
-        ) : limitedVideos?.length === 0 ? (
-          <div 
-            role="alert" 
-            className="text-primary-start text-center"
-            aria-live="polite"
-          >
-            No videos found for "{searchTerm}"
-          </div>
         ) : (
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             role="region"
-            aria-label={`${limitedVideos.length} search results for ${searchTerm}`}
+            aria-label={`${
+              limitedVideos?.length || 0
+            } search results for ${searchTerm}`}
           >
-            {limitedVideos.map((video, index) => (
+            {limitedVideos?.map((video, index) => (
               <VideoResult key={video.id} video={video} index={index} />
             ))}
           </div>
