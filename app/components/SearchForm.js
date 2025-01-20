@@ -31,14 +31,17 @@ export default function SearchForm() {
   const hasMounted = useRef(false);
 
   // Always focus on desktop, never on mobile
-  useEffect(() => {
-    if (hasMounted.current) return; // Skip if not first mount
-    hasMounted.current = true;
 
-    if (!isMobile && inputRef.current) {
-      inputRef.current?.focus();
-    }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isMobile && inputRef.current) {
+        inputRef.current?.focus();
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
   }, [isMobile]);
+  
 
   // Clear search term when we're on the home page
   useEffect(() => {
