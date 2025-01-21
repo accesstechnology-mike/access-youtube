@@ -15,30 +15,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-async function isBadWordPresent(query) {
-  return new Promise((resolve, reject) => {
-    const sql = `SELECT word FROM bad_words WHERE ? LIKE '% ' || word || ' %' OR ? LIKE word || ' %' OR ? LIKE '% ' || word OR ? = word`;
-    db.get(
-      sql,
-      [
-        query.toLowerCase(),
-        query.toLowerCase(),
-        query.toLowerCase(),
-        query.toLowerCase(),
-      ],
-      (err, row) => {
-        if (err) {
-          console.error("Database error:", err);
-          reject(err);
-        } else {
-          const isBad = !!row;
-          resolve(isBad);
-        }
-      }
-    );
-  });
-}
-
 // Wrap the YouTube search logic in use cache
 async function getYouTubeSearchResults(searchTerm) {
   "use cache"; // Re-enabled caching

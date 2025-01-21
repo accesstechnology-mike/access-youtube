@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback, use, Suspense } from "react";
 import YouTube from "react-youtube";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
+
 import SearchForm from "@/components/SearchForm";
 import {
   HiPlayCircle,
@@ -27,51 +26,12 @@ function VideoPlayer({ params }) {
   useAppHeight();
 
   useEffect(() => {
-    // Only fetch if we don't have results yet
-    if (searchResults.length === 0) {
-      const fetchSearchResults = async () => {
-        try {
-          // Use current window location for client-side API calls
-          const protocol = window.location.protocol;
-          const host = window.location.host;
-          const apiUrl = new URL("/api/session/search", `${protocol}//${host}`);
-
-          const response = await fetch(apiUrl, {
-            cache: "no-store",
-          });
-          if (!response.ok) {
-            throw new Error("Failed to fetch search results");
-          }
-          const data = await response.json();
-          setSearchResults(data.videos || []);
-
-          // Get the search term from the API response headers
-          const apiSearchTerm = response.headers.get("x-search-term");
-          if (apiSearchTerm) {
-            setSearchTerm(decodeURIComponent(apiSearchTerm));
-          }
-
-          // Set the current index from the API
-          const apiIndex = parseInt(
-            response.headers.get("x-current-index") || "0",
-            10
-          );
-          setCurrentVideoIndex(apiIndex);
-        } catch (error) {
-          console.error("Error fetching search results:", error);
-          setSearchTerm("error");
-        }
-      };
-
-      fetchSearchResults();
-    } else {
-      // If we have results, just update the current index based on the videoId
-      const newIndex = searchResults.findIndex((video) => video.id === videoId);
-      if (newIndex !== -1) {
-        setCurrentVideoIndex(newIndex);
-      }
-    }
-  }, [videoId, searchResults]);
+    // Clear out searchResults or skip it entirely
+    setSearchResults([]);
+    // Just rely on the direct videoId
+    setCurrentVideoIndex(0);
+    setSearchTerm("direct");
+  }, [videoId]);
 
   const handlePlayerReady = (event) => {
     setPlayer(event.target);
