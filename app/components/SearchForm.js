@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import debounce from "lodash/debounce";
 
@@ -29,6 +29,7 @@ export default function SearchForm() {
   const inputRef = useRef(null);
   const pathname = usePathname();
   const hasMounted = useRef(false);
+  const [isPending, startTransition] = useTransition();
 
   // Always focus on desktop, never on mobile
 
@@ -70,10 +71,16 @@ export default function SearchForm() {
     setError("");
 
     try {
-      await router.push(`/${encodeURIComponent(termToSearch)}`);
-      // Clear after navigation starts
-      setTimeout(() => setSearchTerm(""), 50);
+      const encodedTerm = encodeURIComponent(termToSearch)
+        .replace(/%20/g, '+')
+        .replace(/[^a-zA-Z0-9+\-_.!~*'()]/g, encodeURIComponent);
+
+      startTransition(() => {
+        router.replace(`/${encodedTerm}`);
+        setSearchTerm("");
+      });
     } catch (err) {
+      console.error('Search error:', err);
       setError("An error occurred. Please try again.");
     } finally {
       setIsSearching(false);
@@ -93,7 +100,7 @@ export default function SearchForm() {
         aria-label="Search YouTube videos"
         className="relative"
         method="POST"
-        action={`/${encodeURIComponent(searchTerm.trim())}`}
+        action={`/${encodeURIComponent(searchTerm.trim()).replace(/%20/g, '+')}`}
       >
         <div className="grid-clickable-group">
           <input

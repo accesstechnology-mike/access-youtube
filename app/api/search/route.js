@@ -80,6 +80,13 @@ async function getYouTubeSearchResults(searchTerm) {
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
+  const term = searchParams.get('term');
+
+  // Handle special requests
+  if (term === 'favicon' || request.url.includes('manifest')) {
+    return new Response(null, { status: 204 });
+  }
+
   let searchTerm = searchParams.get("term");
 
   if (!searchTerm) {
@@ -106,12 +113,19 @@ export async function GET(request) {
 
   try {
     const { videos } = await getYouTubeSearchResults(searchTerm);
-    return NextResponse.json({ videos });
+    
+    // Ensure we always return a valid JSON response
+    return NextResponse.json({
+      videos: videos || [],
+      timestamp: new Date().toISOString()
+    });
+
   } catch (error) {
     console.error("Error during scraping:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch search results" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      error: "Failed to fetch search results",
+      message: error.message || "Unknown error",
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }

@@ -1,0 +1,16 @@
+{
+  "name": "access: youtube",
+  "short_name": "access:yt",
+  "description": "Enhanced Accessibility YouTube Search",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2e1433",
+  "theme_color": "#2e1433",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+} 
