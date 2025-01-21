@@ -117,21 +117,21 @@ export default function SearchPage({ params }) {
 }
 
 function SearchResults({ searchTerm, searchResults }) {
-  const limitedVideos = searchResults?.videos?.slice(0, 12) || [];
+  if (!searchResults) {
+    return null;
+  }
 
-    return (
-      <div className="flex flex-col items-center mt-4">
-        <h1 className="text-2xl font-bold text-light/90 mb-8">
-          Search Results for "{searchTerm}"
-        </h1>
+  const limitedVideos = searchResults.videos.slice(0, 12);
+
+  return (
+    <div className="flex flex-col items-center mt-4">
+      <h1 className="text-2xl font-bold text-light/90 mb-8">
+        Search Results for "{searchTerm}"
+      </h1>
 
       {!limitedVideos.length ? (
-        <div 
-          role="alert" 
-          className="text-primary-start text-center text-xl"
-          aria-live="polite"
-        >
-          No videos found for "{searchTerm}". Please try a different search.
+        <div className="text-center text-light/70">
+          Sorry, no results found!
         </div>
       ) : (
         <div

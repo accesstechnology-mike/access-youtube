@@ -60,8 +60,12 @@ export default function SearchForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Introduce a small delay before clearing
+    setTimeout(() => {
+      setSearchTerm("");
+    }, 200);
+
     const termToSearch = searchTerm.trim();
-    
     if (!termToSearch) {
       router.push("/");
       return;
@@ -77,7 +81,6 @@ export default function SearchForm() {
 
       startTransition(() => {
         router.replace(`/${encodedTerm}`);
-        setSearchTerm("");
       });
     } catch (err) {
       console.error('Search error:', err);
