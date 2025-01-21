@@ -1,24 +1,8 @@
 import { NextResponse } from "next/server";
 import { youtube } from "scrape-youtube";
-import sqlite3 from "sqlite3";
-import path from "path";
-
-// Construct the path to the SQLite database file
-const dbPath = path.join(process.cwd(), "lib", "db", "db.sqlite");
-
-// Initialize the database connection
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error("Failed to connect to database:", err);
-  } else {
-    console.log("Successfully connected to the database.");
-  }
-});
 
 // Wrap the YouTube search logic in use cache
 async function getYouTubeSearchResults(searchTerm) {
-  "use cache"; // Re-enabled caching
-  console.log("Fetching results from YouTube (uncached)...");
 
   // Log the exact options we're using
   const options = {
@@ -90,12 +74,36 @@ export async function GET(request) {
   try {
     const { videos } = await getYouTubeSearchResults(searchTerm);
     
-    // Ensure we always return a valid JSON response
-    return NextResponse.json({
+    // Build a minimal array containing only id, title, and thumbnail
+    const minimalVideos = videos.map(({ id, title, thumbnail }) => ({
+      id,
+      title,
+      thumbnail: thumbnail?.url ?? ""
+    }));
+
+    // Create the response object as before
+    const response = NextResponse.json({
       videos: videos || [],
       timestamp: new Date().toISOString()
     });
 
+    // Save the current search term into the cookie
+    response.cookies.set('searchTerm', searchTerm, {
+      path: '/',
+      // You can optionally add an expiration or 'maxAge' here if needed
+    });
+
+    // Also store the minimal video results in a separate cookie
+    response.cookies.set('videoResults', JSON.stringify(minimalVideos), {
+      path: '/',
+    });
+
+    // Reset the 'videoIndex' cookie to 0 on every new search
+    response.cookies.set('videoIndex', '0', {
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error("Error during scraping:", error);
     return NextResponse.json({

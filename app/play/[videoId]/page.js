@@ -14,14 +14,25 @@ import {
 import { FaRepeat } from "react-icons/fa6";
 import { useAppHeight } from "@/hooks/useAppHeight";
 
+// Helper function to grab a cookie value by name
+function getCookieValue(name) {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.split("=")[1]) : "";
+}
+
 function VideoPlayer({ params }) {
   const { videoId } = use(params);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [searchResults, setSearchResults] = useState([]);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("loading...");
+  const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
   const [player, setPlayer] = useState(null);
+  const [videoIndex, setVideoIndex] = useState(0);
 
   useAppHeight();
 
@@ -30,7 +41,34 @@ function VideoPlayer({ params }) {
     setSearchResults([]);
     // Just rely on the direct videoId
     setCurrentVideoIndex(0);
-    setSearchTerm("direct");
+    // Pull initial searchTerm from cookie at mount time
+    const cookieVal = getCookieValue("searchTerm");
+    setSearchTerm(cookieVal || "direct");
+
+    // Also pull and parse the "videoResults" cookie
+    const videoResultsVal = getCookieValue("videoResults");
+    if (videoResultsVal) {
+      try {
+        const parsed = JSON.parse(videoResultsVal);
+        setSearchResults(parsed);
+      } catch (error) {
+        console.error("Failed to parse videoResults cookie:", error);
+      }
+    }
+
+    // Pull 'videoIndex' from the cookie
+    const indexVal = getCookieValue("videoIndex");
+    setVideoIndex(parseInt(indexVal || "0", 10));
+
+    // Once searchResults is loaded and we have a videoId, figure out the correct index
+    if (searchResults.length > 0 && videoId) {
+      const foundIndex = searchResults.findIndex((v) => v.id === videoId);
+      if (foundIndex !== -1) {
+        setVideoIndex(foundIndex);
+        // Update cookie to ensure "Next" logic continues from the right spot
+        document.cookie = `videoIndex=${foundIndex};path=/`;
+      }
+    }
   }, [videoId]);
 
   const handlePlayerReady = (event) => {
@@ -62,10 +100,14 @@ function VideoPlayer({ params }) {
 
   const handleNext = useCallback(() => {
     if (searchResults.length === 0) return;
-    const nextIndex = (currentVideoIndex + 1) % searchResults.length;
-    setCurrentVideoIndex(nextIndex);
-    router.push(`/play/${searchResults[nextIndex].id}`);
-  }, [currentVideoIndex, searchResults, router]);
+    // Move to the next index (loop around)
+    const newIndex = (videoIndex + 1) % searchResults.length;
+    setVideoIndex(newIndex);
+    // Update 'videoIndex' in the cookie as well
+    document.cookie = `videoIndex=${newIndex};path=/`;
+
+    router.push(`/play/${searchResults[newIndex].id}`);
+  }, [videoIndex, searchResults, router]);
 
   const handleBack = useCallback(() => {
     if (
@@ -79,8 +121,6 @@ function VideoPlayer({ params }) {
       router.push("/");
     }
   }, [router, searchTerm]);
-
-  const currentVideo = searchResults[currentVideoIndex] || { id: videoId };
 
   const opts = {
     width: "100%",
@@ -125,6 +165,17 @@ function VideoPlayer({ params }) {
     return () => window.removeEventListener("keydown", handleKeyboardShortcuts);
   }, [handleNext, handlePlayPause, handleRepeat, handleBack]);
 
+  // Alternatively, do this in a separate effect that depends on [searchResults, videoId]:
+  useEffect(() => {
+    if (searchResults.length > 0 && videoId) {
+      const foundIndex = searchResults.findIndex((v) => v.id === videoId);
+      if (foundIndex !== -1 && foundIndex !== videoIndex) {
+        setVideoIndex(foundIndex);
+        document.cookie = `videoIndex=${foundIndex};path=/`;
+      }
+    }
+  }, [searchResults, videoId]);
+
   return (
     <main className="h-[100dvh] bg-dark flex flex-col">
       <div className="container mx-auto px-4 py-4 flex-shrink-0">
@@ -132,6 +183,19 @@ function VideoPlayer({ params }) {
       </div>
 
       <div className="container mx-auto px-4 flex-shrink-0">
+        {/* <p>search term: {searchTerm}</p> */}
+
+        {/* Debug: Show the current index and the video's id/title at this index */}
+        {/* <p className="text-white">
+          Debug → current videoIndex: {videoIndex}
+          {searchResults[videoIndex] && (
+            <>
+              , id: {searchResults[videoIndex].id},
+              title: {searchResults[videoIndex].title}
+            </>
+          )}
+        </p> */}
+
         <div className="grid grid-cols-4 gap-2 mb-4 mt-2">
           <button
             onClick={handlePlayPause}
@@ -183,12 +247,31 @@ function VideoPlayer({ params }) {
             </div>
           </button>
         </div>
+
+        {/* Show a list of video links from the cookie */}
+        {/* {searchResults.length > 0 && (
+          <div className="my-4">
+            <h2 className="text-white font-bold mb-2">
+              Your search results:
+            </h2>
+            {searchResults.map((video) => (
+              <p key={video.id}>
+                <a
+                  href={`/play/${video.id}`}
+                  className="text-primary-start underline"
+                >
+                  {video.title}
+                </a>
+              </p>
+            ))}
+          </div>
+        )} */}
       </div>
 
       {/* Video player */}
       <div className="flex-1 bg-black">
         <YouTube
-          videoId={currentVideo.id}
+          videoId={videoId}
           opts={opts}
           onReady={handlePlayerReady}
           onStateChange={handlePlayerStateChange}
