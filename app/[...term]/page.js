@@ -6,7 +6,6 @@ import { Suspense } from "react";
 import Link from "next/link";
 import SearchForm from "../components/SearchForm";
 import VideoResult from "../components/VideoResult";
-import Image from "next/image";
 
 const MAX_TERM_LENGTH = 100;
 
@@ -50,7 +49,6 @@ export default function SearchPage({ params }) {
 
     const fetchResults = async () => {
       try {
-        console.log('Starting fetch for:', searchTerm);
         setIsLoading(true);
         setError(null);
 
@@ -61,7 +59,6 @@ export default function SearchPage({ params }) {
             headers: {
               "Content-Type": "application/json",
             },
-            cache: 'no-store',
             signal: controller.signal
           }
         );

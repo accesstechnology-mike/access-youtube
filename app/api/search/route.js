@@ -20,20 +20,8 @@ async function getYouTubeSearchResults(searchTerm) {
     },
   };
 
-  console.log("Search options:", JSON.stringify(options, null, 2));
-
   const searchResults = await youtube.search(searchTerm, options);
-
-  // Log more details about the results
-  if (searchResults.videos.length > 0) {
-    console.log(`Found ${searchResults.videos.length} results`);
-    console.log("First result:", {
-      title: searchResults.videos[0].title,
-      duration: searchResults.videos[0].duration,
-      uploaded: searchResults.videos[0].uploaded,
-      views: searchResults.videos[0].views,
-    });
-  }
+ 
 
   return { videos: searchResults.videos };
 }
@@ -56,14 +44,6 @@ export async function GET(request) {
     );
   }
 
-  // Sanitize the search term
-  searchTerm = searchTerm
-    .split("+")
-    .map((part) => decodeURIComponent(part.trim()))
-    .filter((part) => part.length > 0)
-    .join(" ")
-    .trim();
-
   if (!searchTerm) {
     return NextResponse.json(
       { error: "Search term cannot be empty" },
@@ -75,10 +55,9 @@ export async function GET(request) {
     const { videos } = await getYouTubeSearchResults(searchTerm);
     
     // Build a minimal array containing only id, title, and thumbnail
-    const minimalVideos = videos.map(({ id, title, thumbnail }) => ({
+    const minimalVideos = videos.map(({ id, title }) => ({
       id,
       title,
-      thumbnail: thumbnail?.url ?? ""
     }));
 
     // Create the response object as before
@@ -98,10 +77,6 @@ export async function GET(request) {
       path: '/',
     });
 
-    // Reset the 'videoIndex' cookie to 0 on every new search
-    response.cookies.set('videoIndex', '0', {
-      path: '/',
-    });
 
     return response;
   } catch (error) {

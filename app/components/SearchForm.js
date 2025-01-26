@@ -58,36 +58,14 @@ export default function SearchForm() {
     []
   );
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    // Introduce a small delay before clearing
-    setTimeout(() => {
-      setSearchTerm("");
-    }, 200);
-
-    const termToSearch = searchTerm.trim();
-    if (!termToSearch) {
-      router.push("/");
+    if (!searchTerm.trim()) {
+      router.push('/');
       return;
     }
-
-    setIsSearching(true);
-    setError("");
-
-    try {
-      const encodedTerm = encodeURIComponent(termToSearch)
-        .replace(/%20/g, '+')
-        .replace(/[^a-zA-Z0-9+\-_.!~*'()]/g, encodeURIComponent);
-
-      startTransition(() => {
-        router.replace(`/${encodedTerm}`);
-      });
-    } catch (err) {
-      console.error('Search error:', err);
-      setError("An error occurred. Please try again.");
-    } finally {
-      setIsSearching(false);
-    }
+    const encodedTerm = searchTerm.trim().toLowerCase().replace(/ /g, '+');
+    router.push(`/${encodedTerm}`);
   };
 
   return (
@@ -102,8 +80,8 @@ export default function SearchForm() {
         role="search"
         aria-label="Search YouTube videos"
         className="relative"
-        method="POST"
-        action={`/${encodeURIComponent(searchTerm.trim()).replace(/%20/g, '+')}`}
+        method="GET"
+        action={`/${searchTerm.trim().toLowerCase().replace(/ /g, '+')}`}
       >
         <div className="grid-clickable-group">
           <input
