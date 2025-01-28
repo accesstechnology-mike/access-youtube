@@ -54,7 +54,7 @@ export async function GET(request) {
   try {
     const { videos } = await getYouTubeSearchResults(searchTerm);
     
-    // Build a minimal array containing only id, title, and thumbnail
+    // Build a minimal array containing only id, title
     const minimalVideos = videos.map(({ id, title }) => ({
       id,
       title,
@@ -65,18 +65,6 @@ export async function GET(request) {
       videos: videos || [],
       timestamp: new Date().toISOString()
     });
-
-    // Save the current search term into the cookie
-    response.cookies.set('searchTerm', searchTerm, {
-      path: '/',
-      // You can optionally add an expiration or 'maxAge' here if needed
-    });
-
-    // Also store the minimal video results in a separate cookie
-    response.cookies.set('videoResults', JSON.stringify(minimalVideos), {
-      path: '/',
-    });
-
 
     return response;
   } catch (error) {

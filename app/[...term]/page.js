@@ -1,146 +1,78 @@
-"use client";
-
-import { useState, useEffect, useRef } from "react";
-import { redirect } from "next/navigation";
-import { Suspense } from "react";
-import Link from "next/link";
 import SearchForm from "../components/SearchForm";
 import VideoResult from "../components/VideoResult";
-
-const MAX_TERM_LENGTH = 100;
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { use } from "react";
 
 export default function SearchPage({ params }) {
-  const [searchResults, setSearchResults] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const isMounted = useRef(false);
-  const fetchController = useRef(null);
+  // Properly handle params with use hook
+  const resolvedParams = use(Promise.resolve(params));
+  const rawTerm = resolvedParams?.term?.[0];
+  
+  if (!rawTerm) redirect("/");
 
-  useEffect(() => {
-    const termArray = params?.term;
-    if (!termArray?.[0]) {
-      window.location.href = "/";
-      return;
-    }
+  // Handle special files server-side
+  if (['favicon', 'site.webmanifest'].includes(rawTerm) || rawTerm.endsWith('.ico')) {
+    redirect("/");
+  }
 
-    const searchTerm = decodeURIComponent(termArray[0]);
-
-    // Skip checks for special system files
-    if (searchTerm === 'favicon' || 
-        searchTerm === 'site.webmanifest' || 
-        searchTerm.endsWith('.ico')) {
-      window.location.href = "/";
-      return;
-    }
-
-    if (searchTerm.length > MAX_TERM_LENGTH) {
-      window.location.href = "/";
-      return;
-    }
-
-    // Abort any existing request
-    if (fetchController.current) {
-      fetchController.current.abort();
-    }
-
-    // Create new AbortController
-    fetchController.current = new AbortController();
-    const controller = fetchController.current;
-
-    const fetchResults = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await fetch(
-          `/api/search?term=${encodeURIComponent(searchTerm)}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            signal: controller.signal
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Fetch completed for:', searchTerm);
-        setSearchResults(data);
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error("Search error:", error);
-          setError(error.message || "Search failed");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchResults();
-
-    return () => {
-      if (fetchController.current) {
-        console.log('Cleaning up fetch for:', searchTerm);
-        fetchController.current.abort();
-      }
-    };
-  }, [params?.term?.[0]]); // Only run when the search term changes
-
-  const displayTerm = params?.term?.[0] ? 
-    decodeURIComponent(params.term[0]).split("+").join(" ") : "";
+  const searchTerm = decodeURIComponent(rawTerm).replace(/\+/g, ' ');
 
   return (
     <main className="min-h-screen bg-dark">
       <div className="container mx-auto px-4 py-8">
-        <SearchForm initialTerm={displayTerm} />
-        {isLoading ? (
-          <div className="text-center py-8 text-light/70">
-            Loading search results...
-          </div>
-        ) : error ? (
-          <div role="alert" className="text-primary-start text-center text-xl">
-            {error}. Please try again.
-          </div>
-        ) : (
-          <SearchResults searchTerm={displayTerm} searchResults={searchResults} />
-        )}
+        <SearchForm initialTerm={searchTerm} />
+        <Suspense fallback={<div className="text-center py-8 text-light/70">Loading search results...</div>}>
+          <SearchResultsWrapper searchTerm={searchTerm} />
+        </Suspense>
       </div>
     </main>
   );
 }
 
-function SearchResults({ searchTerm, searchResults }) {
-  if (!searchResults) {
-    return null;
+async function SearchResultsWrapper({ searchTerm }) {
+  let results;
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/search?term=${encodeURIComponent(searchTerm)}`,
+      { next: { revalidate: 3600 } } // Add revalidation
+    );
+    if (!res.ok) throw new Error('Failed to fetch');
+    results = await res.json();
+  } catch (error) {
+    console.error("Search failed:", error);
+    return (
+      <div role="alert" className="text-center text-red-500 p-4">
+        Failed to load results. Please try again later.
+      </div>
+    );
   }
 
-  const limitedVideos = searchResults.videos.slice(0, 12);
+  return <SearchResults searchTerm={searchTerm} videos={results?.videos?.slice(0, 12) || []} />;
+}
 
+function SearchResults({ searchTerm, videos }) {
   return (
-    <div className="flex flex-col items-center mt-4">
-      <h1 className="text-2xl font-bold text-light/90 mb-8">
-        Search Results for "{searchTerm}"
+    <section aria-labelledby="search-results-heading" className="mt-8">
+      <h1 id="search-results-heading" className="text-2xl font-bold text-light/90 text-center mb-8">
+        Results for "{searchTerm}"
       </h1>
 
-      {!limitedVideos.length ? (
-        <div className="text-center text-light/70">
-          Sorry, no results found!
-        </div>
+      {videos.length === 0 ? (
+        <p className="text-center text-light/70">No results found</p>
       ) : (
-        <div
+        <div 
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-          role="region"
-          aria-label={`${limitedVideos.length} search results for ${searchTerm}`}
+          role="list"
+          aria-label="Search results"
         >
-          {limitedVideos.map((video, index) => (
-            <VideoResult key={video.id} video={video} index={index} />
+          {videos.map((video, index) => (
+            <article key={video.id} role="listitem">
+              <VideoResult video={video} priority={index < 4} />
+            </article>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }

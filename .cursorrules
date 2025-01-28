@@ -1,7 +1,5 @@
 Refer to project notes and keep these and these rules consistentenly updated.
 
-We're not using typescript for some reason.
-
 Note, the user/app workflow is:
 
 Either, on / user searches for a term - this is sanitized and reroutes to /[...term]
@@ -26,5 +24,3 @@ Then we're fetching the search results from the api/search route and displaying 
 10. **Document Decisions:** Keep a record of significant decisions and the reasoning behind them. This includes updating project notes and cursor rules.
 11. **Address Feedback Promptly:** Pay close attention to feedback and incorporate it into the development process.
 12. **Reference Notes and Rules:** Actively refer to the project notes and cursor rules to ensure alignment with the project goals and principles.
-
-Reference Notes and Rules: [PROJECT_NOTES.md](PROJECT_NOTES.md)
