@@ -44,12 +44,8 @@ export default function SearchForm() {
   }, [isMobile]);
   
 
-  // Clear search term when we're on the home page
-  useEffect(() => {
-    if (pathname === '/') {
-      setSearchTerm("");
-    }
-  }, [pathname]);
+  // Cancel debounce on unmount or when clearing
+  const debouncedRef = useRef(null);
 
   const debouncedSetSearchTerm = useCallback(
     debounce((term) => {
@@ -58,14 +54,58 @@ export default function SearchForm() {
     []
   );
 
-  const handleSubmit = (e) => {
+  // Store the debounced function reference
+  useEffect(() => {
+    debouncedRef.current = debouncedSetSearchTerm;
+    return () => {
+      debouncedRef.current?.cancel();
+    };
+  }, [debouncedSetSearchTerm]);
+
+  // Enhanced useEffect to handle redirects
+  useEffect(() => {
+    if (pathname === '/') {
+      // Cancel any pending debounced updates
+      debouncedRef.current?.cancel();
+      setSearchTerm("");
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    }
+  }, [pathname]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    // Cancel any pending debounced updates
+    debouncedRef.current?.cancel();
+    
     if (!searchTerm.trim()) {
       router.push('/');
       return;
     }
+    
     const encodedTerm = searchTerm.trim().toLowerCase().replace(/ /g, '+');
-    router.push(`/${encodedTerm}`);
+    
+    try {
+      const response = await fetch(`/api/check-bad-words?term=${encodedTerm}`);
+      const { hasBadWords } = await response.json();
+      
+      if (hasBadWords) {
+        debouncedRef.current?.cancel(); // Cancel any pending updates
+        setSearchTerm(""); // Clear the search term if bad words found
+        if (inputRef.current) {
+          inputRef.current.value = "";
+        }
+        router.push('/');
+        return;
+      }
+      
+      router.push(`/${encodedTerm}`);
+    } catch (error) {
+      debouncedRef.current?.cancel();
+      setSearchTerm("");
+      router.push('/');
+    }
   };
 
   return (

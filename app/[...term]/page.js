@@ -2,13 +2,25 @@ import SearchForm from "../components/SearchForm";
 import VideoResult from "../components/VideoResult";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { use } from "react";
 
+// Main page component
 export default function SearchPage({ params }) {
-  // Properly handle params with use hook
-  const resolvedParams = use(Promise.resolve(params));
-  const rawTerm = resolvedParams?.term?.[0];
-  
+  return (
+    <main className="min-h-screen bg-dark">
+      <div className="container mx-auto px-4 py-8">
+        <Suspense fallback={<div className="text-center py-8 text-light/70">Loading...</div>}>
+          <SearchPageContent paramsPromise={params} />
+        </Suspense>
+      </div>
+    </main>
+  );
+}
+
+// Component that handles params and renders content
+async function SearchPageContent({ paramsPromise }) {
+  const { term } = await paramsPromise;
+  const rawTerm = term?.[0];
+
   if (!rawTerm) redirect("/");
 
   // Handle special files server-side
@@ -19,26 +31,29 @@ export default function SearchPage({ params }) {
   const searchTerm = decodeURIComponent(rawTerm).replace(/\+/g, ' ');
 
   return (
-    <main className="min-h-screen bg-dark">
-      <div className="container mx-auto px-4 py-8">
-        <SearchForm initialTerm={searchTerm} />
-        <Suspense fallback={<div className="text-center py-8 text-light/70">Loading search results...</div>}>
-          <SearchResultsWrapper searchTerm={searchTerm} />
-        </Suspense>
-      </div>
-    </main>
+    <>
+      <SearchForm initialTerm={searchTerm} />
+      <Suspense fallback={<div className="text-center py-8 text-light/70">Loading search results...</div>}>
+        <SearchResultsWrapper searchTerm={searchTerm} />
+      </Suspense>
+    </>
   );
 }
 
 async function SearchResultsWrapper({ searchTerm }) {
-  let results;
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/search?term=${encodeURIComponent(searchTerm)}`,
-      { next: { revalidate: 3600 } } // Add revalidation
+      { 
+        next: { revalidate: 3600 },
+        cache: 'force-cache' 
+      }
     );
+    
     if (!res.ok) throw new Error('Failed to fetch');
-    results = await res.json();
+    const results = await res.json();
+
+    return <SearchResults searchTerm={searchTerm} videos={results?.videos?.slice(0, 12) || []} />;
   } catch (error) {
     console.error("Search failed:", error);
     return (
@@ -47,8 +62,6 @@ async function SearchResultsWrapper({ searchTerm }) {
       </div>
     );
   }
-
-  return <SearchResults searchTerm={searchTerm} videos={results?.videos?.slice(0, 12) || []} />;
 }
 
 function SearchResults({ searchTerm, videos }) {
