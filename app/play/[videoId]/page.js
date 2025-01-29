@@ -29,14 +29,55 @@ function VideoPlayer({ params }) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [player, setPlayer] = useState(null);
   const [searchTerm, setSearchTerm] = useState(null);
+  const [currentPlaylist, setCurrentPlaylist] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
 
   useAppHeight();
 
   useEffect(() => {
     const term = Cookies.get('searchTerm');
-    console.log('Cookie searchTerm:', term);
     setSearchTerm(term);
   }, []);
+
+  useEffect(() => {
+    // Get search term and video results from cookies
+    const videoResults = Cookies.get('videoResults');
+    
+    if (videoResults) {
+      try {
+        const playlist = JSON.parse(videoResults);
+        console.log('Loaded playlist:', playlist); // Debug log
+        setCurrentPlaylist(playlist);
+        // Find current video index in playlist
+        const index = playlist.findIndex(video => video.id === videoId);
+        console.log('Current index:', index); // Debug log
+        setCurrentIndex(index);
+      } catch (err) {
+        console.error('Error parsing playlist:', err);
+      }
+    }
+  }, [videoId]);
+
+  // Handle next video navigation
+  const handleNext = useCallback(() => {
+    const videoResults = Cookies.get('videoResults');
+    if (!videoResults) return;
+    
+    try {
+      const playlist = JSON.parse(videoResults);
+      const currentIndex = playlist.findIndex(video => video.id === videoId);
+      
+      if (currentIndex === -1) return;
+      
+      // Get next video, cycling back to start if at end
+      const nextIndex = currentIndex >= playlist.length - 1 ? 0 : currentIndex + 1;
+      const nextVideo = playlist[nextIndex];
+      
+      window.location.href = `/play/${nextVideo.id}`;
+    } catch (err) {
+      console.error('Error parsing playlist:', err);
+    }
+  }, [videoId]);
 
   const handlePlayerReady = (event) => {
     setPlayer(event.target);
@@ -99,11 +140,8 @@ function VideoPlayer({ params }) {
 
   return (
     <main className="h-[100dvh] bg-dark flex flex-col">
-
-
       <div className="container mx-auto px-4 py-4 flex-shrink-0">
         <SearchForm autoFocus={false} />
-        
       </div>
 
       <div className="container mx-auto px-4 flex-shrink-0">
@@ -135,11 +173,11 @@ function VideoPlayer({ params }) {
           </button>
 
           <button
-            disabled
-            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center opacity-50 cursor-not-allowed"
+            onClick={handleNext}
+            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">
-              <span className="text-2xl sm:text-4xl mb-1 text-primary-start">
+              <span className="text-2xl sm:text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
                 <HiForward />
               </span>
               <h2 className="text-dark text-sm sm:text-lg font-bold">Next</h2>

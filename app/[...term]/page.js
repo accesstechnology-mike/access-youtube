@@ -38,13 +38,13 @@ function SearchResultsWrapper({ searchTerm }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    Cookies.set('searchTerm', searchTerm); // Set searchTerm cookie
-    let fetchCount = 1;
+    // Set searchTerm cookie
+    Cookies.set('searchTerm', searchTerm);
+    
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        fetchCount++
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/search?term=${encodeURIComponent(searchTerm)}`,
           {
@@ -55,7 +55,15 @@ function SearchResultsWrapper({ searchTerm }) {
 
         if (!res.ok) throw new Error('Failed to fetch');
         const results = await res.json();
-        setVideos(results?.videos?.slice(0, 12) || []);
+        const videoResults = results?.videos || [];
+        setVideos(videoResults);
+        
+        // Save minimal video data to cookie for all videos
+        const minimalVideoData = videoResults.map(video => ({
+          id: video.id,
+          title: video.title
+        }));
+        Cookies.set('videoResults', JSON.stringify(minimalVideoData));
       } catch (err) {
         console.error("Search failed:", err);
         setError(err);
@@ -65,7 +73,7 @@ function SearchResultsWrapper({ searchTerm }) {
     };
 
     fetchData();
-  }, [searchTerm]); // useEffect dependency on searchTerm
+  }, [searchTerm]);
 
   if (loading) {
     return <div className="text-center py-8 text-light/70">Loading search results...</div>;
