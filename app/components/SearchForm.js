@@ -118,7 +118,7 @@ export default function SearchForm() {
       <form
         onSubmit={handleSubmit}
         role="search"
-        aria-label="Search YouTube videos"
+        aria-label="Search for YouTube videos"
         className="relative"
         method="GET"
         action={`/${searchTerm.trim().toLowerCase().replace(/ /g, '+')}`}
@@ -137,7 +137,7 @@ export default function SearchForm() {
             }}
             placeholder="type here..."
             className="input-primary text-2xl h-16"
-            aria-label="Search YouTube videos"
+            aria-label="Type here to search for YouTube videos"
             aria-invalid={!!error}
             aria-describedby={error ? "search-error" : undefined}
             disabled={isSearching}
@@ -148,11 +148,11 @@ export default function SearchForm() {
           <button
             type="submit"
             className="absolute right-2 top-2 btn-primary h-12 w-24"
-            aria-label={isSearching ? "Searching..." : "Search"}
+            aria-label={isSearching ? "Please wait, searching..." : "Search for videos"}
             disabled={isSearching}
             role="button"
           >
-            Search
+            {isSearching ? "Searching..." : "Search"}
           </button>
         </div>
 
@@ -161,14 +161,18 @@ export default function SearchForm() {
             id="search-error"
             role="alert"
             className="absolute top-full left-0 mt-2 text-primary-start"
-            aria-live="polite"
+            aria-live="assertive"
           >
             {error}
           </div>
         )}
 
-        <div aria-live="polite" className="sr-only">
-          {isSearching ? "Searching for videos..." : ""}
+        <div 
+          aria-live="polite" 
+          className="sr-only"
+          role="status"
+        >
+          {isSearching ? "Searching for videos, please wait..." : ""}
         </div>
       </form>
     </div>

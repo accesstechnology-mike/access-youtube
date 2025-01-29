@@ -1,14 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Cookies from 'js-cookie';
 import VideoResult from "../components/VideoResult";
+import { useRouter } from 'next/navigation';
 
 export default function ClientSearchResults({ searchTerm }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState('');
+  const router = useRouter();
+
+  const handleVideoKeyPress = useCallback((index) => {
+    if (videos.length > index) {
+      router.push(`/play/${videos[index].id}`);
+    }
+  }, [videos, router]);
+
+  useEffect(() => {
+    const handleKeyboardShortcuts = (event) => {
+      if (event.altKey) {
+        const key = event.key.toLowerCase();
+        // Map keys to indices (1-9 -> 0-8, 0 -> 9, a -> 10, b -> 11)
+        if (key >= '1' && key <= '9') {
+          handleVideoKeyPress(parseInt(key) - 1);
+          event.preventDefault();
+        } else if (key === '0') {
+          handleVideoKeyPress(9);
+          event.preventDefault();
+        } else if (key === 'a') {
+          handleVideoKeyPress(10);
+          event.preventDefault();
+        } else if (key === 'b') {
+          handleVideoKeyPress(11);
+          event.preventDefault();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyboardShortcuts);
+    return () => window.removeEventListener("keydown", handleKeyboardShortcuts);
+  }, [handleVideoKeyPress]);
 
   useEffect(() => {
     // Try to get cached results first
@@ -38,9 +71,11 @@ export default function ClientSearchResults({ searchTerm }) {
       setLoading(true);
       setError(null);
       setDataSource('api');
+
+      console.log("fetching data", `/api/search?term=${encodeURIComponent(searchTerm)}`)
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/search?term=${encodeURIComponent(searchTerm)}`,
+          `/api/search?term=${encodeURIComponent(searchTerm)}`,
           {
             next: { revalidate: 3600 },
             cache: 'force-cache'
@@ -83,8 +118,8 @@ export default function ClientSearchResults({ searchTerm }) {
   }
 
   return (
-    <section aria-labelledby="search-results-heading" className="mt-8">
-      <h1 id="search-results-heading" className="text-2xl font-bold text-light/90 text-center mb-8">
+    <section aria-labelledby="search-results-heading" className="mt-6">
+      <h1 id="search-results-heading" className="text-2xl font-bold text-light/90 text-center mb-6">
         Results for "{searchTerm}"
       </h1>
 
@@ -97,8 +132,13 @@ export default function ClientSearchResults({ searchTerm }) {
           aria-label="Search results"
         >
           {videos.slice(0, 12).map((video, index) => (
-            <article key={video.id} role="listitem">
-              <VideoResult video={video} priority={index < 4} />
+            <article key={video.id} role="listitem" aria-label={`Video ${index + 1}, ${video.title} - press Alt plus ${index < 9 ? index + 1 : index === 9 ? '0' : index === 10 ? 'A' : 'B'} to play`}>
+              <div className="relative">
+                <VideoResult video={video} priority={index < 4} index={index} />
+                <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm" aria-hidden="true">
+                  Alt+{index < 9 ? index + 1 : index === 9 ? '0' : index === 10 ? 'A' : 'B'}
+                </div>
+              </div>
             </article>
           ))}
         </div>
@@ -106,3 +146,4 @@ export default function ClientSearchResults({ searchTerm }) {
     </section>
   );
 } 
+

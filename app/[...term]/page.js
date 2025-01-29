@@ -1,7 +1,18 @@
 import SearchForm from "../components/SearchForm";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 import ClientSearchResults from "./ClientSearchResults";
+
+export async function generateMetadata({ params }) {
+  const { term } = params;
+  const rawTerm = term?.[0];
+  if (!rawTerm) return { title: 'Search YouTube Videos' };
+  
+  const searchTerm = decodeURIComponent(rawTerm).replace(/\+/g, ' ');
+  return {
+    title: `Search results for "${searchTerm}" - access: youtube`,
+    description: `Search results for YouTube videos matching "${searchTerm}"`,
+  };
+}
 
 export default async function SearchPage({ params }) {
   const { term } = await params;
