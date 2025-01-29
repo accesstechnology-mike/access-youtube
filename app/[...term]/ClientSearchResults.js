@@ -135,7 +135,7 @@ export default function ClientSearchResults({ searchTerm }) {
             <article key={video.id} role="listitem" aria-label={`Video ${index + 1}, ${video.title} - press Alt plus ${index < 9 ? index + 1 : index === 9 ? '0' : index === 10 ? 'A' : 'B'} to play`}>
               <div className="relative">
                 <VideoResult video={video} priority={index < 4} index={index} />
-                <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm" aria-hidden="true">
+                <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm hidden sm:block" aria-hidden="true">
                   Alt+{index < 9 ? index + 1 : index === 9 ? '0' : index === 10 ? 'A' : 'B'}
                 </div>
               </div>

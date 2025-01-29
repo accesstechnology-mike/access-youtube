@@ -186,7 +186,7 @@ function VideoPlayer({ params }) {
             className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group relative"
             aria-label={`${isPlaying ? 'Pause' : 'Play'} video - Alt plus P`}
           >
-            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm" aria-hidden="true">
+            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm hidden sm:block" aria-hidden="true">
               Alt+P
             </div>
             <div className="flex flex-col items-center">
@@ -204,7 +204,7 @@ function VideoPlayer({ params }) {
             className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group relative"
             aria-label="Restart video from beginning - Alt plus R"
           >
-            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm" aria-hidden="true">
+            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm hidden sm:block" aria-hidden="true">
               Alt+R
             </div>
             <div className="flex flex-col items-center">
@@ -227,7 +227,7 @@ function VideoPlayer({ params }) {
             }`}
             aria-label={currentPlaylist.length > 0 ? "Play next video in playlist - Alt plus N" : "Next video not available - no playlist active"}
           >
-            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm" aria-hidden="true">
+            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm hidden sm:block" aria-hidden="true">
               Alt+N
             </div>
             <div className="flex flex-col items-center">
@@ -249,7 +249,7 @@ function VideoPlayer({ params }) {
             }`}
             aria-label={searchTerm ? "Return to search results - Alt plus B" : "Back not available - direct video mode"}
           >
-            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm" aria-hidden="true">
+            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm hidden sm:block" aria-hidden="true">
               Alt+B
             </div>
             <div className="flex flex-col items-center">
