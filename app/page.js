@@ -16,7 +16,7 @@ export default function HomePage() {
               src="/img/logo.png"
               alt="access:youtube logo"
               width={180}
-              height={180}
+              height={62}
               priority
               className="mb-12 opacity-90"
             />
