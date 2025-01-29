@@ -4,6 +4,8 @@ import { youtube } from "scrape-youtube";
 // Wrap the YouTube search logic in use cache
 async function getYouTubeSearchResults(searchTerm) {
 
+  
+
   // Log the exact options we're using
   const options = {
     type: "video",
@@ -37,6 +39,7 @@ export async function GET(request) {
 
   let searchTerm = searchParams.get("term");
 
+
   if (!searchTerm) {
     return NextResponse.json(
       { error: "Search term is required" },
@@ -53,20 +56,19 @@ export async function GET(request) {
 
   try {
     const { videos } = await getYouTubeSearchResults(searchTerm);
-    
-    // Build a minimal array containing only id, title
-    const minimalVideos = videos.map(({ id, title }) => ({
-      id,
-      title,
-    }));
+
+
+
 
     // Create the response object as before
-    const response = NextResponse.json({
+
+    'use cache'
+    const searchResponse = NextResponse.json({
+      searchTerm: searchTerm,
       videos: videos || [],
-      timestamp: new Date().toISOString()
     });
 
-    return response;
+    return searchResponse;
   } catch (error) {
     console.error("Error during scraping:", error);
     return NextResponse.json({

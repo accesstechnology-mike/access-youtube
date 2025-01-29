@@ -11,13 +11,32 @@ import {
 } from "react-icons/hi2";
 import { FaRepeat } from "react-icons/fa6";
 import { useAppHeight } from "@/hooks/useAppHeight";
+import Cookies from 'js-cookie'
+
+
+async function fetchCachedResults(term) {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user_cache?term=${encodeURIComponent(term)}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch cached results');
+  }
+  return response.json();
+}
+console.log("cookies", Cookies.get()) // => { name: 'value' }
+
 
 function VideoPlayer({ params }) {
   const { videoId } = use(params);
   const [isPlaying, setIsPlaying] = useState(true);
   const [player, setPlayer] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(null);
 
   useAppHeight();
+
+  useEffect(() => {
+    const term = Cookies.get('searchTerm');
+    console.log('Cookie searchTerm:', term);
+    setSearchTerm(term);
+  }, []);
 
   const handlePlayerReady = (event) => {
     setPlayer(event.target);
@@ -80,8 +99,11 @@ function VideoPlayer({ params }) {
 
   return (
     <main className="h-[100dvh] bg-dark flex flex-col">
-       <div className="container mx-auto px-4 py-4 flex-shrink-0">
+
+
+      <div className="container mx-auto px-4 py-4 flex-shrink-0">
         <SearchForm autoFocus={false} />
+        
       </div>
 
       <div className="container mx-auto px-4 flex-shrink-0">
@@ -124,9 +146,9 @@ function VideoPlayer({ params }) {
             </div>
           </button>
 
-          <button
-            disabled
-            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center opacity-50 cursor-not-allowed"
+          <a
+            href={searchTerm ? `/${encodeURIComponent(searchTerm)}` : '/'}
+            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
           >
             <div className="flex flex-col items-center">
               <span className="text-2xl sm:text-4xl mb-1 text-primary-start">
@@ -134,7 +156,7 @@ function VideoPlayer({ params }) {
               </span>
               <h2 className="text-dark text-sm sm:text-lg font-bold">Back</h2>
             </div>
-          </button>
+          </a>
         </div>
       </div>
 

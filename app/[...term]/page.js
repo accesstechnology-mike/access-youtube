@@ -1,24 +1,14 @@
+"use client"; // Make this a client component to use useEffect
+
 import SearchForm from "../components/SearchForm";
 import VideoResult from "../components/VideoResult";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react"; // Import useState and useEffect
+import Cookies from 'js-cookie'; // Import js-cookie
 
-// Main page component
 export default function SearchPage({ params }) {
-  return (
-    <main className="min-h-screen bg-dark">
-      <div className="container mx-auto px-4 py-8">
-        <Suspense fallback={<div className="text-center py-8 text-light/70">Loading...</div>}>
-          <SearchPageContent paramsPromise={params} />
-        </Suspense>
-      </div>
-    </main>
-  );
-}
-
-// Component that handles params and renders content
-async function SearchPageContent({ paramsPromise }) {
-  const { term } = await paramsPromise;
+  // Properly destructure params
+  const { term } = params;
   const rawTerm = term?.[0];
 
   if (!rawTerm) redirect("/");
@@ -31,37 +21,65 @@ async function SearchPageContent({ paramsPromise }) {
   const searchTerm = decodeURIComponent(rawTerm).replace(/\+/g, ' ');
 
   return (
-    <>
-      <SearchForm initialTerm={searchTerm} />
-      <Suspense fallback={<div className="text-center py-8 text-light/70">Loading search results...</div>}>
-        <SearchResultsWrapper searchTerm={searchTerm} />
-      </Suspense>
-    </>
+    <main className="min-h-screen bg-dark">
+      <div className="container mx-auto px-4 py-8">
+        <SearchForm initialTerm={searchTerm} />
+        <Suspense fallback={<div className="text-center py-8 text-light/70">Loading search results...</div>}>
+          <SearchResultsWrapper searchTerm={searchTerm} />
+        </Suspense>
+      </div>
+    </main>
   );
 }
 
-async function SearchResultsWrapper({ searchTerm }) {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/search?term=${encodeURIComponent(searchTerm)}`,
-      { 
-        next: { revalidate: 3600 },
-        cache: 'force-cache' 
-      }
-    );
-    
-    if (!res.ok) throw new Error('Failed to fetch');
-    const results = await res.json();
+function SearchResultsWrapper({ searchTerm }) {
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    return <SearchResults searchTerm={searchTerm} videos={results?.videos?.slice(0, 12) || []} />;
-  } catch (error) {
-    console.error("Search failed:", error);
+  useEffect(() => {
+    Cookies.set('searchTerm', searchTerm); // Set searchTerm cookie
+    let fetchCount = 1;
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        fetchCount++
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/search?term=${encodeURIComponent(searchTerm)}`,
+          {
+            next: { revalidate: 3600 },
+            cache: 'force-cache'
+          }
+        );
+
+        if (!res.ok) throw new Error('Failed to fetch');
+        const results = await res.json();
+        setVideos(results?.videos?.slice(0, 12) || []);
+      } catch (err) {
+        console.error("Search failed:", err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [searchTerm]); // useEffect dependency on searchTerm
+
+  if (loading) {
+    return <div className="text-center py-8 text-light/70">Loading search results...</div>;
+  }
+
+  if (error) {
     return (
       <div role="alert" className="text-center text-red-500 p-4">
         Failed to load results. Please try again later.
       </div>
     );
   }
+
+  return <SearchResults searchTerm={searchTerm} videos={videos} />;
 }
 
 function SearchResults({ searchTerm, videos }) {
@@ -74,7 +92,7 @@ function SearchResults({ searchTerm, videos }) {
       {videos.length === 0 ? (
         <p className="text-center text-light/70">No results found</p>
       ) : (
-        <div 
+        <div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           role="list"
           aria-label="Search results"
