@@ -46,38 +46,40 @@ function VideoPlayer({ params }) {
     if (videoResults) {
       try {
         const playlist = JSON.parse(videoResults);
-        console.log('Loaded playlist:', playlist); // Debug log
-        setCurrentPlaylist(playlist);
-        // Find current video index in playlist
         const index = playlist.findIndex(video => video.id === videoId);
-        console.log('Current index:', index); // Debug log
-        setCurrentIndex(index);
+        
+        if (index === -1) {
+          // Video not in playlist - clear cookies and disable navigation
+          Cookies.remove('videoResults');
+          Cookies.remove('searchTerm');
+          setCurrentPlaylist([]);
+          setCurrentIndex(-1);
+          setSearchTerm(null);
+        } else {
+          setCurrentPlaylist(playlist);
+          setCurrentIndex(index);
+        }
       } catch (err) {
         console.error('Error parsing playlist:', err);
+        setCurrentPlaylist([]);
+        setCurrentIndex(-1);
       }
+    } else {
+      setCurrentPlaylist([]);
+      setCurrentIndex(-1);
     }
   }, [videoId]);
 
   // Handle next video navigation
   const handleNext = useCallback(() => {
-    const videoResults = Cookies.get('videoResults');
-    if (!videoResults) return;
+    if (currentPlaylist.length === 0 || currentIndex === -1) return;
     
-    try {
-      const playlist = JSON.parse(videoResults);
-      const currentIndex = playlist.findIndex(video => video.id === videoId);
-      
-      if (currentIndex === -1) return;
-      
-      // Get next video, cycling back to start if at end
-      const nextIndex = currentIndex >= playlist.length - 1 ? 0 : currentIndex + 1;
-      const nextVideo = playlist[nextIndex];
-      
-      window.location.href = `/play/${nextVideo.id}`;
-    } catch (err) {
-      console.error('Error parsing playlist:', err);
-    }
-  }, [videoId]);
+    // Get next video, cycling back to start if at end
+    const nextIndex = currentIndex >= currentPlaylist.length - 1 ? 0 : currentIndex + 1;
+    const nextVideo = currentPlaylist[nextIndex];
+    
+    window.location.href = `/play/${nextVideo.id}`;
+  }, [currentPlaylist, currentIndex]);
 
   const handlePlayerReady = (event) => {
     setPlayer(event.target);
@@ -174,7 +176,12 @@ function VideoPlayer({ params }) {
 
           <button
             onClick={handleNext}
-            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
+            disabled={currentPlaylist.length === 0}
+            className={`bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center transition-all group ${
+              currentPlaylist.length > 0
+                ? "hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring"
+                : "opacity-50 cursor-not-allowed"
+            }`}
           >
             <div className="flex flex-col items-center">
               <span className="text-2xl sm:text-4xl mb-1 text-primary-start group-hover:scale-110 transition-transform">
@@ -186,7 +193,11 @@ function VideoPlayer({ params }) {
 
           <a
             href={searchTerm ? `/${encodeURIComponent(searchTerm)}` : '/'}
-            className="bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring transition-all group"
+            className={`bg-light rounded-lg py-2 sm:py-3 px-2 sm:px-4 text-center transition-all group ${
+              searchTerm
+                ? "hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark focus-ring"
+                : "opacity-50 pointer-events-none"
+            }`}
           >
             <div className="flex flex-col items-center">
               <span className="text-2xl sm:text-4xl mb-1 text-primary-start">
