@@ -1,4 +1,5 @@
 import "./globals.css";
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 export const viewport = {
   themeColor: "#2e1433",
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className="dark">
       <body className="min-h-screen bg-dark text-light antialiased">
         {children}
+        <GoogleAnalytics gaId="G-LGBJ3EV4V7" />
       </body>
     </html>
   );
