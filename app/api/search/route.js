@@ -91,7 +91,15 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const term = searchParams.get('term');
-
+  
+  // Log request metadata to help identify source of searches
+  const userAgent = request.headers.get('user-agent') || 'unknown';
+  const referer = request.headers.get('referer') || 'direct';
+  
+  // Check if this is a bot/crawler
+  const botPatterns = /bot|crawler|spider|scrapy|wget|curl|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram/i;
+  const isBot = botPatterns.test(userAgent);
+  
   // Handle special requests
   if (term === 'favicon' || request.url.includes('manifest')) {
     return new Response(null, { status: 204 });
@@ -99,19 +107,44 @@ export async function GET(request) {
 
   let searchTerm = searchParams.get("term");
 
-
   if (!searchTerm) {
     return NextResponse.json(
       { error: "Search term is required" },
       { status: 400 }
     );
   }
-
-  if (!searchTerm) {
-    return NextResponse.json(
-      { error: "Search term cannot be empty" },
-      { status: 400 }
-    );
+  
+  // Log all searches with metadata
+  console.log(`[YouTube Search] New search request:`, {
+    term: searchTerm.substring(0, 150), // Limit length in logs
+    termLength: searchTerm.length,
+    isBot,
+    userAgent: userAgent.substring(0, 100),
+    referer
+  });
+  
+  // Detect if search term looks like a full video title (contains pipe character or is very long)
+  const looksLikeVideoTitle = searchTerm.includes(' | ') || searchTerm.length > 100;
+  
+  if (looksLikeVideoTitle) {
+    console.log(`[YouTube Search] Suspicious search term detected:`, {
+      term: searchTerm,
+      isBot,
+      userAgent: userAgent.substring(0, 100),
+      referer,
+      length: searchTerm.length
+    });
+    
+    // If it's a bot searching for a video title, return empty results instead of actually searching
+    if (isBot) {
+      console.log(`[YouTube Search] Blocked bot search for video title`);
+      return NextResponse.json({
+        searchTerm: searchTerm,
+        videos: [],
+        blocked: true,
+        reason: 'Bot search for video title'
+      });
+    }
   }
 
   try {
