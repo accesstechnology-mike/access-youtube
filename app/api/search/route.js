@@ -1,6 +1,42 @@
 import { NextResponse } from "next/server";
 import { SearchHandler } from '@scrappy-scraper/youtube_scraper';
 
+// Simple in-memory rate limiter
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 5; // 5 searches per minute per IP
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const userRequests = rateLimitMap.get(ip) || [];
+  
+  // Remove old requests outside the window
+  const recentRequests = userRequests.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
+  
+  // Check if over limit
+  if (recentRequests.length >= MAX_REQUESTS_PER_WINDOW) {
+    return { allowed: false, remaining: 0, resetIn: Math.ceil((recentRequests[0] + RATE_LIMIT_WINDOW - now) / 1000) };
+  }
+  
+  // Add current request
+  recentRequests.push(now);
+  rateLimitMap.set(ip, recentRequests);
+  
+  // Clean up old entries periodically (prevent memory leak)
+  if (Math.random() < 0.01) { // 1% chance to clean up
+    for (const [key, timestamps] of rateLimitMap.entries()) {
+      const valid = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
+      if (valid.length === 0) {
+        rateLimitMap.delete(key);
+      } else {
+        rateLimitMap.set(key, valid);
+      }
+    }
+  }
+  
+  return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - recentRequests.length };
+}
+
 /**
  * YouTube Search API Route
  * 
@@ -125,20 +161,28 @@ export async function GET(request) {
   // Log request metadata to help identify source of searches
   const userAgent = request.headers.get('user-agent') || 'unknown';
   const referer = request.headers.get('referer') || 'direct';
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
   
-  // Enhanced bot detection
-  const botPatterns = /bot|crawler|spider|scrapy|wget|curl|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot|googlebot|bingbot|yandex|baidu/i;
+  // AGGRESSIVE bot detection patterns
+  const botPatterns = /bot|crawler|spider|scrapy|wget|curl|python|java|okhttp|axios|fetch|headless|phantom|selenium|puppeteer|playwright|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot|googlebot|bingbot|yandex|baidu|semrush|ahrefs|mj12bot|dotbot|blexbot|petalbot/i;
   const isBot = botPatterns.test(userAgent);
   
   // Detect truncated/suspicious User-Agents (bots faking browser UAs but doing it poorly)
   // Real browser UAs are typically 110-150+ chars, bots often truncate to exactly 100
   const isTruncatedUA = userAgent.endsWith('.') || userAgent.length === 100 || userAgent.length < 50;
   
+  // Detect missing or suspicious headers that real browsers always send
+  const acceptHeader = request.headers.get('accept') || '';
+  const acceptLanguage = request.headers.get('accept-language') || '';
+  const isMissingBrowserHeaders = !acceptLanguage || acceptHeader === '*/*';
+  
   // Detect self-referencing searches for full video titles (bots crawling their own results)
   const isSelfReferer = referer.includes('accessyoutube.org.uk');
   
   // Consider it a bot if any suspicious indicators are present
-  const isSuspiciousBot = isBot || isTruncatedUA;
+  const isSuspiciousBot = isBot || isTruncatedUA || isMissingBrowserHeaders;
   
   // Handle special requests
   if (term === 'favicon' || request.url.includes('manifest')) {
@@ -152,6 +196,27 @@ export async function GET(request) {
       { error: "Search term is required" },
       { status: 400 }
     );
+  }
+  
+  // Check rate limit
+  const rateLimit = checkRateLimit(ip);
+  if (!rateLimit.allowed) {
+    console.log(`[Rate Limit] Blocked IP: ${ip}, resetIn: ${rateLimit.resetIn}s`);
+    return NextResponse.json({
+      searchTerm: searchTerm,
+      videos: [],
+      error: "Rate limit exceeded",
+      message: `Too many requests. Please wait ${rateLimit.resetIn} seconds.`,
+      retryAfter: rateLimit.resetIn
+    }, {
+      status: 429,
+      headers: {
+        'Retry-After': rateLimit.resetIn.toString(),
+        'X-RateLimit-Limit': MAX_REQUESTS_PER_WINDOW.toString(),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': Math.ceil((Date.now() + rateLimit.resetIn * 1000) / 1000).toString(),
+      }
+    });
   }
   
   // Detect if search term looks like a full video title (contains pipe character or is very long)
@@ -168,6 +233,7 @@ export async function GET(request) {
       reasons: {
         isTruncatedUA,
         isBot,
+        isMissingBrowserHeaders,
         isSelfReferer,
         looksLikeVideoTitle
       }
