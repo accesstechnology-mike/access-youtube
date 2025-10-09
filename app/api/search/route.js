@@ -188,14 +188,20 @@ export async function GET(request) {
       }, { status: 503 });
     }
 
-    // Create the response object as before
-    'use cache'
-    const searchResponse = NextResponse.json({
+    // Only cache successful responses with actual videos
+    if (videos.length > 0) {
+      'use cache'
+      return NextResponse.json({
+        searchTerm: searchTerm,
+        videos: videos,
+      });
+    }
+    
+    // Don't cache empty results - might be temporary failure
+    return NextResponse.json({
       searchTerm: searchTerm,
-      videos: videos || [],
+      videos: [],
     });
-
-    return searchResponse;
   } catch (error) {
     console.error("Error during scraping:", error);
     
@@ -208,8 +214,8 @@ export async function GET(request) {
       statusCode = 503;
     }
     
-    // Return empty results instead of error for better UX
-    console.log(`[YouTube Search] Returning empty results due to error: ${errorMessage}`);
+    // Return error status so Next.js doesn't cache failures
+    console.log(`[YouTube Search] Returning error due to: ${errorMessage}`);
     return NextResponse.json({
       searchTerm: searchTerm,
       videos: [],
@@ -217,6 +223,11 @@ export async function GET(request) {
       message: errorMessage,
       retryAfter: 300, // Suggest retry after 5 minutes
       timestamp: new Date().toISOString()
-    }, { status: 200 }); // Return 200 with empty results instead of error
+    }, { 
+      status: statusCode, // Use proper error status to prevent caching
+      headers: {
+        'Cache-Control': 'no-store, must-revalidate', // Don't cache errors
+      }
+    });
   }
 }
