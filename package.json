@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@next/third-parties": "^15.1.6",
+    "@scrappy-scraper/youtube_scraper": "^1.0.30",
     "@vercel/analytics": "^1.5.0",
     "googleapis": "^161.0.0",
     "js-cookie": "^3.0.5",
@@ -21,7 +22,6 @@
     "react-youtube": "^10.1.0",
     "scrape-youtube": "^2.4.0",
     "sqlite3": "^5.1.7",
-    "youtube-sr": "^4.3.12",
     "yt-search": "^2.11.0"
   },
   "devDependencies": {

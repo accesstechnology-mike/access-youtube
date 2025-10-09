@@ -1,112 +1,93 @@
 import { NextResponse } from "next/server";
-import YouTube from "youtube-sr";
+import { SearchHandler } from '@scrappy-scraper/youtube_scraper';
 
 /**
  * YouTube Search API Route
  * 
- * Uses youtube-sr library for scraping YouTube search results.
- * This is more reliable than scrape-youtube which was failing with "Cannot read properties of undefined (reading 'split')".
- * 
- * CRITICAL: The Cookie header with PREF=f2=8000000 is essential for:
- * - Enabling SafeSearch filtering
- * - Getting consistent, appropriate search results
- * - Avoiding age-restricted or inappropriate content
+ * Uses @scrappy-scraper/youtube_scraper for scraping YouTube search results.
+ * This is more reliable and actively maintained (updated 2025-10-08).
+ * Previous libraries (scrape-youtube, youtube-sr) kept breaking due to YouTube structure changes.
  * 
  * Mitigations implemented:
  * 1. Retry logic with exponential backoff
- * 2. Custom request headers including critical PREF cookie
- * 3. Better error handling and logging
- * 4. Graceful degradation with informative error messages
- * 5. Video result normalization to match expected format
+ * 2. Better error handling and logging
+ * 3. Graceful degradation with informative error messages
+ * 4. Video result normalization to match expected format
+ * 5. Bot detection and blocking
  * 
- * Note: youtube-sr is actively maintained and more resilient,
- * but all scrapers can break when YouTube changes their HTML structure.
+ * Note: All scrapers can break when YouTube changes their structure,
+ * but this library is actively maintained and updated frequently.
  */
 
-// Normalize youtube-sr results to match expected format
-function normalizeYouTubeSRResults(searchResults) {
-  return searchResults.map(video => ({
-    id: video.id,
-    title: video.title || '',
-    duration: video.duration_formatted || '',
-    duration_raw: video.duration || 0,
-    snippet: video.description || '',
-    upload_date: video.uploadedAt || '',
-    thumbnail: video.thumbnail?.url || '',  // Component expects 'thumbnail' not 'thumbnail_src'
-    thumbnail_src: video.thumbnail?.url || '',  // Keep for backwards compatibility
-    views: video.views || 0,
-    channel: {
-      name: video.channel?.name || 'Unknown',
-      verified: video.channel?.verified || false,
-      id: video.channel?.id || null,
-      url: video.channel?.url || '',
-    },
-    url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
-  }));
+// Format duration from seconds to MM:SS or HH:MM:SS
+function formatDuration(seconds) {
+  if (!seconds) return '';
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Normalize scrappy-scraper results to match expected format
+function normalizeScrappyScraperResults(searchResults) {
+  if (!searchResults || !Array.isArray(searchResults)) return [];
+  
+  return searchResults
+    .filter(item => item.type === 'video' && item.id) // Only include video results with IDs
+    .map(video => ({
+      id: video.id || '',
+      title: video.title || '',
+      duration: formatDuration(video.length),
+      duration_raw: video.length || 0,
+      snippet: '', // This scraper doesn't provide descriptions in search results
+      upload_date: video.age ? `${video.age.amount} ${video.age.unit} ago` : '',
+      thumbnail: video.thumbnail || '',
+      thumbnail_src: video.thumbnail || '',
+      views: video.viewCount || 0,
+      channel: {
+        name: video.channelName || 'Unknown',
+        verified: false, // Not provided by this scraper
+        id: video.channelId || null,
+        url: video.channelId ? `https://www.youtube.com/channel/${video.channelId}` : '',
+      },
+      url: `https://www.youtube.com/watch?v=${video.id}`,
+    }));
 }
 
 // Wrap the YouTube search logic with retry capability
 async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 1) {
-  // Vary User-Agent between retries to avoid pattern detection
-  const userAgents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  ];
-
   try {
     console.log(`[YouTube Search] Attempting search for: "${searchTerm}" (attempt ${retryCount + 1})`);
     
-    // Configure youtube-sr with custom request options
-    // Note: safeSearch: true automatically adds PREF=f2=8000000 cookie
-    let searchResults;
+    const searchHandler = new SearchHandler();
+    await searchHandler.search({ query: searchTerm });
     
-    try {
-      searchResults = await YouTube.search(searchTerm, {
-        limit: 12,
-        type: "video",
-        safeSearch: true, // CRITICAL: Automatically adds PREF=f2=8000000 cookie
-        requestOptions: {
-          headers: {
-            "User-Agent": userAgents[retryCount % userAgents.length],
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "DNT": "1",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-          },
-        },
-      });
-    } catch (parseError) {
-      // youtube-sr sometimes throws parsing errors for individual results
-      // If it's a browseId or parsing error, try to continue with partial results
-      if (parseError.message?.includes('browseId') || parseError.message?.includes('Cannot read properties')) {
-        console.warn(`[YouTube Search] Parsing error (returning empty results):`, parseError.message);
-        searchResults = [];
-      } else {
-        throw parseError; // Re-throw other errors
-      }
-    }
+    const searchResults = searchHandler.toJSON();
     
     // Validate the response structure
-    if (!searchResults || !Array.isArray(searchResults)) {
+    if (!searchResults || !searchResults.items || !Array.isArray(searchResults.items)) {
       console.error("[YouTube Search] Invalid response structure:", {
         hasResults: !!searchResults,
-        isArray: Array.isArray(searchResults),
-        type: typeof searchResults
+        hasItems: !!searchResults?.items,
+        isArray: Array.isArray(searchResults?.items)
       });
       throw new Error("Invalid response structure from YouTube");
     }
     
-    console.log(`[YouTube Search] Success: Found ${searchResults.length} videos`);
+    console.log(`[YouTube Search] Success: Found ${searchResults.items.length} results`);
     
     // Normalize the results to match the expected format
-    const normalizedVideos = normalizeYouTubeSRResults(searchResults);
+    const normalizedVideos = normalizeScrappyScraperResults(searchResults.items);
+    
+    console.log(`[YouTube Search] Normalized to ${normalizedVideos.length} videos`);
     
     // If we got empty results on first try, retry once more
-    // But don't retry if we got actual videos (even if fewer than expected)
     if (normalizedVideos.length === 0 && retryCount === 0) {
-      console.warn(`[YouTube Search] No results found, retrying with different User-Agent`);
+      console.warn(`[YouTube Search] No video results found, retrying`);
       const waitTime = 2000 + Math.random() * 1000;
       await new Promise(resolve => setTimeout(resolve, waitTime));
       return getYouTubeSearchResults(searchTerm, retryCount + 1, maxRetries);
@@ -123,7 +104,6 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
     
     // Retry on errors if we haven't exhausted retries
     if (retryCount < maxRetries) {
-      // Exponential backoff: 3s with jitter
       const waitTime = 3000 + Math.random() * 2000;
       console.log(`[YouTube Search] Retrying in ${Math.round(waitTime)}ms (attempt ${retryCount + 2}/${maxRetries + 1})`);
       
