@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@next/third-parties": "^15.1.6",
+    "@vercel/analytics": "^1.5.0",
     "accessyoutube-nextjs": "link:",
     "js-cookie": "^3.0.5",
     "lodash": "^4.17.21",

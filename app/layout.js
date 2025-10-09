@@ -1,5 +1,6 @@
 import "./globals.css";
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { Analytics } from "@vercel/analytics/next"
 
 export const viewport = {
   themeColor: "#2e1433",
