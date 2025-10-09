@@ -59,21 +59,34 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
     
     // Configure youtube-sr with custom request options
     // Note: safeSearch: true automatically adds PREF=f2=8000000 cookie
-    const searchResults = await YouTube.search(searchTerm, {
-      limit: 12,
-      type: "video",
-      safeSearch: true, // CRITICAL: Automatically adds PREF=f2=8000000 cookie
-      requestOptions: {
-        headers: {
-          "User-Agent": userAgents[retryCount % userAgents.length],
-          "Accept-Language": "en-US,en;q=0.9",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-          "DNT": "1",
-          "Connection": "keep-alive",
-          "Upgrade-Insecure-Requests": "1",
+    let searchResults;
+    
+    try {
+      searchResults = await YouTube.search(searchTerm, {
+        limit: 12,
+        type: "video",
+        safeSearch: true, // CRITICAL: Automatically adds PREF=f2=8000000 cookie
+        requestOptions: {
+          headers: {
+            "User-Agent": userAgents[retryCount % userAgents.length],
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+          },
         },
-      },
-    });
+      });
+    } catch (parseError) {
+      // youtube-sr sometimes throws parsing errors for individual results
+      // If it's a browseId or parsing error, try to continue with partial results
+      if (parseError.message?.includes('browseId') || parseError.message?.includes('Cannot read properties')) {
+        console.warn(`[YouTube Search] Parsing error (returning empty results):`, parseError.message);
+        searchResults = [];
+      } else {
+        throw parseError; // Re-throw other errors
+      }
+    }
     
     // Validate the response structure
     if (!searchResults || !Array.isArray(searchResults)) {
@@ -90,6 +103,15 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
     // Normalize the results to match the expected format
     const normalizedVideos = normalizeYouTubeSRResults(searchResults);
     
+    // If we got empty results on first try, retry once more
+    // But don't retry if we got actual videos (even if fewer than expected)
+    if (normalizedVideos.length === 0 && retryCount === 0) {
+      console.warn(`[YouTube Search] No results found, retrying with different User-Agent`);
+      const waitTime = 2000 + Math.random() * 1000;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return getYouTubeSearchResults(searchTerm, retryCount + 1, maxRetries);
+    }
+    
     return { videos: normalizedVideos };
   } catch (error) {
     console.error(`[YouTube Search] Error on attempt ${retryCount + 1}:`, {
@@ -99,10 +121,10 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
       stack: error.stack?.split('\n').slice(0, 3)
     });
     
-    // Retry on any error if we haven't exhausted retries
+    // Retry on errors if we haven't exhausted retries
     if (retryCount < maxRetries) {
-      // Exponential backoff: 3s, 9s with jitter
-      const waitTime = Math.pow(3, retryCount + 1) * 1000 + Math.random() * 2000;
+      // Exponential backoff: 3s with jitter
+      const waitTime = 3000 + Math.random() * 2000;
       console.log(`[YouTube Search] Retrying in ${Math.round(waitTime)}ms (attempt ${retryCount + 2}/${maxRetries + 1})`);
       
       await new Promise(resolve => setTimeout(resolve, waitTime));
