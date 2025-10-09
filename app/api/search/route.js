@@ -26,20 +26,30 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Wrap the YouTube search logic with retry capability
-async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 3) {
+async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 2) {
+  // Vary User-Agent between retries to avoid pattern detection
+  const userAgents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  ];
+  
   const options = {
     type: "video",
     safeSearch: true,
     request: {
       headers: {
         Cookie: "PREF=f2=8000000",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": userAgents[retryCount % userAgents.length],
         "Accept-Language": "en-US,en;q=0.9",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Encoding": "gzip, deflate, br",
         "DNT": "1",
         "Connection": "keep-alive",
         "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
       },
     },
   };
@@ -73,10 +83,10 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
       error.message.includes("ytInitialData") ||
       error.message.includes("Cannot read properties")
     )) {
-      const waitTime = Math.pow(2, retryCount) * 1000;
-      console.log(`[YouTube Search] Retrying in ${waitTime}ms (attempt ${retryCount + 2}/${maxRetries + 1})`);
+      // Longer exponential backoff: 5s, 10s, 20s to avoid triggering rate limits
+      const waitTime = Math.pow(2, retryCount + 2) * 1000 + Math.random() * 1000; // Add jitter
+      console.log(`[YouTube Search] Retrying in ${Math.round(waitTime)}ms (attempt ${retryCount + 2}/${maxRetries + 1})`);
       
-      // Wait before retrying (exponential backoff: 1s, 2s, 4s)
       await new Promise(resolve => setTimeout(resolve, waitTime));
       
       return getYouTubeSearchResults(searchTerm, retryCount + 1, maxRetries);
