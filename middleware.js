@@ -4,10 +4,15 @@ import { NextResponse } from "next/server";
 export async function middleware(request) {
   const pathname = request.nextUrl.pathname
   const userAgent = request.headers.get('user-agent') || ''
+  const referer = request.headers.get('referer') || ''
   
   // Block known bots and crawlers from hitting search pages
   const botPatterns = /bot|crawler|spider|scrapy|wget|curl|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot|googlebot|bingbot|yandex|baidu/i
   const isBot = botPatterns.test(userAgent)
+  
+  // Detect bots with fake User-Agents (they loop back to their own pages)
+  const isSelfReferer = referer.includes('accessyoutube.org.uk') && pathname.split('/').filter(Boolean).length === 1
+  const isSuspiciousBehavior = isSelfReferer && userAgent.endsWith('.')  // Truncated UA is suspicious
   
   // Split path into segments
   const pathSegments = pathname.split('/').filter(Boolean)
@@ -31,10 +36,12 @@ export async function middleware(request) {
   
   // Block bots from accessing search result pages
   // They can access homepage and videos, but not search pages to prevent crawling every search term
-  if (isBot) {
-    console.log(`[Middleware] Blocked bot from search page:`, {
+  if (isBot || isSuspiciousBehavior) {
+    console.log(`[Middleware] Blocked ${isBot ? 'bot' : 'suspicious behavior'} from search page:`, {
       pathname,
-      userAgent: userAgent.substring(0, 100)
+      userAgent: userAgent.substring(0, 100),
+      referer: referer.substring(0, 100),
+      reason: isBot ? 'bot pattern' : 'self-referer with truncated UA'
     })
     return NextResponse.redirect(new URL('/', request.url), 308)
   }
