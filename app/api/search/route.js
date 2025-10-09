@@ -1,90 +1,109 @@
 import { NextResponse } from "next/server";
-import { youtube } from "scrape-youtube";
+import YouTube from "youtube-sr";
 
 /**
  * YouTube Search API Route
  * 
- * KNOWN ISSUE: The scrape-youtube library can fail with "Cannot read properties of undefined (reading 'split')"
- * when YouTube changes their HTML structure or blocks requests. This happens when the library tries to extract
- * 'var ytInitialData' from the page but the HTML doesn't contain it.
+ * Uses youtube-sr library for scraping YouTube search results.
+ * This is more reliable than scrape-youtube which was failing with "Cannot read properties of undefined (reading 'split')".
+ * 
+ * CRITICAL: The Cookie header with PREF=f2=8000000 is essential for:
+ * - Enabling SafeSearch filtering
+ * - Getting consistent, appropriate search results
+ * - Avoiding age-restricted or inappropriate content
  * 
  * Mitigations implemented:
- * 1. Retry logic with exponential backoff (up to 3 retries)
- * 2. Enhanced request headers to mimic real browser
+ * 1. Retry logic with exponential backoff
+ * 2. Custom request headers including critical PREF cookie
  * 3. Better error handling and logging
  * 4. Graceful degradation with informative error messages
+ * 5. Video result normalization to match expected format
  * 
- * Future considerations:
- * - Consider using YouTube Data API v3 (requires API key and has quotas)
- * - Monitor for scrape-youtube package updates
- * - Implement rate limiting to avoid getting blocked
+ * Note: youtube-sr is actively maintained and more resilient,
+ * but all scrapers can break when YouTube changes their HTML structure.
  */
 
-// Enable debug mode for the scraper in development
-if (process.env.NODE_ENV === 'development') {
-  youtube.debug = true;
+// Normalize youtube-sr results to match expected format
+function normalizeYouTubeSRResults(searchResults) {
+  return searchResults.map(video => ({
+    id: video.id,
+    title: video.title || '',
+    duration: video.duration_formatted || '',
+    duration_raw: video.duration || 0,
+    snippet: video.description || '',
+    upload_date: video.uploadedAt || '',
+    thumbnail: video.thumbnail?.url || '',  // Component expects 'thumbnail' not 'thumbnail_src'
+    thumbnail_src: video.thumbnail?.url || '',  // Keep for backwards compatibility
+    views: video.views || 0,
+    channel: {
+      name: video.channel?.name || 'Unknown',
+      verified: video.channel?.verified || false,
+      id: video.channel?.id || null,
+      url: video.channel?.url || '',
+    },
+    url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
+  }));
 }
 
 // Wrap the YouTube search logic with retry capability
-async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 2) {
+async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 1) {
   // Vary User-Agent between retries to avoid pattern detection
   const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   ];
-  
-  const options = {
-    type: "video",
-    safeSearch: true,
-    request: {
-      headers: {
-        Cookie: "PREF=f2=8000000",
-        "User-Agent": userAgents[retryCount % userAgents.length],
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
-        "DNT": "1",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-      },
-    },
-  };
 
   try {
     console.log(`[YouTube Search] Attempting search for: "${searchTerm}" (attempt ${retryCount + 1})`);
-    const searchResults = await youtube.search(searchTerm, options);
+    
+    // Configure youtube-sr with custom request options including the CRITICAL PREF cookie
+    const searchResults = await YouTube.search(searchTerm, {
+      limit: 12,
+      type: "video",
+      safeSearch: true,
+      requestOptions: {
+        headers: {
+          "Cookie": "PREF=f2=8000000", // CRITICAL: SafeSearch cookie for content filtering
+          "User-Agent": userAgents[retryCount % userAgents.length],
+          "Accept-Language": "en-US,en;q=0.9",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          "Accept-Encoding": "gzip, deflate, br",
+          "DNT": "1",
+          "Connection": "keep-alive",
+          "Upgrade-Insecure-Requests": "1",
+        },
+      },
+    });
     
     // Validate the response structure
-    if (!searchResults || !searchResults.videos) {
+    if (!searchResults || !Array.isArray(searchResults)) {
       console.error("[YouTube Search] Invalid response structure:", {
         hasResults: !!searchResults,
-        hasVideos: !!(searchResults && searchResults.videos),
-        resultKeys: searchResults ? Object.keys(searchResults) : []
+        isArray: Array.isArray(searchResults),
+        type: typeof searchResults
       });
       throw new Error("Invalid response structure from YouTube");
     }
     
-    console.log(`[YouTube Search] Success: Found ${searchResults.videos.length} videos`);
-    return { videos: searchResults.videos };
+    console.log(`[YouTube Search] Success: Found ${searchResults.length} videos`);
+    
+    // Normalize the results to match the expected format
+    const normalizedVideos = normalizeYouTubeSRResults(searchResults);
+    
+    return { videos: normalizedVideos };
   } catch (error) {
     console.error(`[YouTube Search] Error on attempt ${retryCount + 1}:`, {
       message: error.message,
       type: error.constructor.name,
-      searchTerm
+      searchTerm,
+      stack: error.stack?.split('\n').slice(0, 3)
     });
     
-    // If we get a split error and haven't exhausted retries, try again
-    if (retryCount < maxRetries && (
-      error.message.includes("split") || 
-      error.message.includes("ytInitialData") ||
-      error.message.includes("Cannot read properties")
-    )) {
-      // Longer exponential backoff: 5s, 10s, 20s to avoid triggering rate limits
-      const waitTime = Math.pow(2, retryCount + 2) * 1000 + Math.random() * 1000; // Add jitter
+    // Retry on any error if we haven't exhausted retries
+    if (retryCount < maxRetries) {
+      // Exponential backoff: 3s, 9s with jitter
+      const waitTime = Math.pow(3, retryCount + 1) * 1000 + Math.random() * 2000;
       console.log(`[YouTube Search] Retrying in ${Math.round(waitTime)}ms (attempt ${retryCount + 2}/${maxRetries + 1})`);
       
       await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -92,7 +111,7 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
       return getYouTubeSearchResults(searchTerm, retryCount + 1, maxRetries);
     }
     
-    // Re-throw if we've exhausted retries or it's a different error
+    // Re-throw if we've exhausted retries
     console.error(`[YouTube Search] Failed after ${retryCount + 1} attempts`);
     throw error;
   }
@@ -186,15 +205,19 @@ export async function GET(request) {
     let statusCode = 500;
     
     if (error.message && error.message.includes("split")) {
-      errorMessage = "YouTube response format changed or request was blocked. Try again later.";
+      errorMessage = "YouTube has temporarily blocked our requests or changed their page structure. Please try again in a few minutes.";
       statusCode = 503;
     }
     
+    // Return empty results instead of error for better UX
+    console.log(`[YouTube Search] Returning empty results due to error: ${errorMessage}`);
     return NextResponse.json({
-      error: "Failed to fetch search results",
+      searchTerm: searchTerm,
+      videos: [],
+      error: "Temporarily unavailable",
       message: errorMessage,
-      details: error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : undefined,
+      retryAfter: 300, // Suggest retry after 5 minutes
       timestamp: new Date().toISOString()
-    }, { status: statusCode });
+    }, { status: 200 }); // Return 200 with empty results instead of error
   }
 }

@@ -11,7 +11,7 @@
   "dependencies": {
     "@next/third-parties": "^15.1.6",
     "@vercel/analytics": "^1.5.0",
-    "accessyoutube-nextjs": "link:",
+    "googleapis": "^161.0.0",
     "js-cookie": "^3.0.5",
     "lodash": "^4.17.21",
     "next": "canary",
@@ -20,7 +20,9 @@
     "react-icons": "^5.4.0",
     "react-youtube": "^10.1.0",
     "scrape-youtube": "^2.4.0",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "youtube-sr": "^4.3.12",
+    "yt-search": "^2.11.0"
   },
   "devDependencies": {
     "@types/node": "latest",
