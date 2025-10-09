@@ -57,18 +57,17 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
   try {
     console.log(`[YouTube Search] Attempting search for: "${searchTerm}" (attempt ${retryCount + 1})`);
     
-    // Configure youtube-sr with custom request options including the CRITICAL PREF cookie
+    // Configure youtube-sr with custom request options
+    // Note: safeSearch: true automatically adds PREF=f2=8000000 cookie
     const searchResults = await YouTube.search(searchTerm, {
       limit: 12,
       type: "video",
-      safeSearch: true,
+      safeSearch: true, // CRITICAL: Automatically adds PREF=f2=8000000 cookie
       requestOptions: {
         headers: {
-          "Cookie": "PREF=f2=8000000", // CRITICAL: SafeSearch cookie for content filtering
           "User-Agent": userAgents[retryCount % userAgents.length],
           "Accept-Language": "en-US,en;q=0.9",
           "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-          "Accept-Encoding": "gzip, deflate, br",
           "DNT": "1",
           "Connection": "keep-alive",
           "Upgrade-Insecure-Requests": "1",
