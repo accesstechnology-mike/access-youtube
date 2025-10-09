@@ -163,6 +163,7 @@ export async function GET(request) {
       term: searchTerm.substring(0, 100),
       termLength: searchTerm.length,
       userAgent: userAgent.substring(0, 100),
+      userAgentLength: userAgent.length, // Debug: log actual UA length
       referer: referer.substring(0, 100),
       reasons: {
         isTruncatedUA,
