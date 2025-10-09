@@ -124,9 +124,18 @@ export async function GET(request) {
   const userAgent = request.headers.get('user-agent') || 'unknown';
   const referer = request.headers.get('referer') || 'direct';
   
-  // Check if this is a bot/crawler
-  const botPatterns = /bot|crawler|spider|scrapy|wget|curl|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram/i;
+  // Enhanced bot detection
+  const botPatterns = /bot|crawler|spider|scrapy|wget|curl|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot|googlebot|bingbot|yandex|baidu/i;
   const isBot = botPatterns.test(userAgent);
+  
+  // Detect truncated/suspicious User-Agents (bots faking browser UAs but doing it poorly)
+  const isTruncatedUA = userAgent.endsWith('.') || userAgent.length < 50;
+  
+  // Detect self-referencing searches for full video titles (bots crawling their own results)
+  const isSelfReferer = referer.includes('accessyoutube.org.uk');
+  
+  // Consider it a bot if any suspicious indicators are present
+  const isSuspiciousBot = isBot || isTruncatedUA;
   
   // Handle special requests
   if (term === 'favicon' || request.url.includes('manifest')) {
@@ -142,37 +151,43 @@ export async function GET(request) {
     );
   }
   
-  // Log all searches with metadata
-  console.log(`[YouTube Search] New search request:`, {
-    term: searchTerm.substring(0, 150), // Limit length in logs
-    termLength: searchTerm.length,
-    isBot,
-    userAgent: userAgent.substring(0, 100),
-    referer
-  });
-  
   // Detect if search term looks like a full video title (contains pipe character or is very long)
-  const looksLikeVideoTitle = searchTerm.includes(' | ') || searchTerm.length > 100;
+  const looksLikeVideoTitle = searchTerm.includes(' | ') || searchTerm.length > 60;
   
-  if (looksLikeVideoTitle) {
-    console.log(`[YouTube Search] Suspicious search term detected:`, {
-      term: searchTerm,
-      isBot,
+  // Block suspicious bots searching for video titles (crawlers hitting our search results)
+  if (looksLikeVideoTitle && (isSuspiciousBot || isSelfReferer)) {
+    console.log(`[YouTube Search] Blocked suspicious bot/crawler:`, {
+      term: searchTerm.substring(0, 100),
+      termLength: searchTerm.length,
       userAgent: userAgent.substring(0, 100),
-      referer,
-      length: searchTerm.length
+      referer: referer.substring(0, 100),
+      reasons: {
+        isTruncatedUA,
+        isBot,
+        isSelfReferer,
+        looksLikeVideoTitle
+      }
     });
     
-    // If it's a bot searching for a video title, return empty results instead of actually searching
-    if (isBot) {
-      console.log(`[YouTube Search] Blocked bot search for video title`);
-      return NextResponse.json({
-        searchTerm: searchTerm,
-        videos: [],
-        blocked: true,
-        reason: 'Bot search for video title'
-      });
-    }
+    return NextResponse.json({
+      searchTerm: searchTerm,
+      videos: [],
+      blocked: true,
+      reason: 'Automated traffic detected'
+    }, {
+      status: 403,
+      headers: {
+        'Cache-Control': 'public, max-age=86400', // Cache blocks for 24 hours
+      }
+    });
+  }
+  
+  // Log legitimate searches
+  if (!isSuspiciousBot) {
+    console.log(`[YouTube Search] Processing search:`, {
+      term: searchTerm.substring(0, 100),
+      termLength: searchTerm.length
+    });
   }
 
   try {
