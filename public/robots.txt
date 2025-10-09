@@ -1,0 +1,13 @@
+# access: youtube robots.txt
+# Allow bots to index homepage and video pages
+# Block bots from indexing search result pages
+
+User-agent: *
+Allow: /
+Allow: /play/
+Disallow: /*+*
+Disallow: /api/
+
+# Sitemap (if you add one later)
+# Sitemap: https://accessyoutube.org.uk/sitemap.xml
+

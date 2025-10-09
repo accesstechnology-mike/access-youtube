@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 
 export async function middleware(request) {
   const pathname = request.nextUrl.pathname
+  const userAgent = request.headers.get('user-agent') || ''
+  
+  // Block known bots and crawlers from hitting search pages
+  const botPatterns = /bot|crawler|spider|scrapy|wget|curl|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot|googlebot|bingbot|yandex|baidu/i
+  const isBot = botPatterns.test(userAgent)
   
   // Split path into segments
   const pathSegments = pathname.split('/').filter(Boolean)
@@ -22,6 +27,16 @@ export async function middleware(request) {
 
   if (!isSearchTermPath || isExcludedPath) {
     return NextResponse.next()
+  }
+  
+  // Block bots from accessing search result pages
+  // They can access homepage and videos, but not search pages to prevent crawling every search term
+  if (isBot) {
+    console.log(`[Middleware] Blocked bot from search page:`, {
+      pathname,
+      userAgent: userAgent.substring(0, 100)
+    })
+    return NextResponse.redirect(new URL('/', request.url), 308)
   }
 
   try {
