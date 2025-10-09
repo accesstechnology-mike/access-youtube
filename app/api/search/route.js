@@ -131,7 +131,8 @@ export async function GET(request) {
   const isBot = botPatterns.test(userAgent);
   
   // Detect truncated/suspicious User-Agents (bots faking browser UAs but doing it poorly)
-  const isTruncatedUA = userAgent.endsWith('.') || userAgent.length < 50;
+  // Real browser UAs are typically 110-150+ chars, bots often truncate to exactly 100
+  const isTruncatedUA = userAgent.endsWith('.') || userAgent.length === 100 || userAgent.length < 50;
   
   // Detect self-referencing searches for full video titles (bots crawling their own results)
   const isSelfReferer = referer.includes('accessyoutube.org.uk');
