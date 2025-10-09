@@ -28,6 +28,8 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen bg-dark text-light antialiased">
         {children}
         <GoogleAnalytics gaId="G-LGBJ3EV4V7" />
+        <Analytics />
+
       </body>
     </html>
   );
