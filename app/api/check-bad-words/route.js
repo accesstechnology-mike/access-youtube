@@ -21,7 +21,7 @@ export async function GET(request) {
     .map((word) => word.toLowerCase());
 
   try {
-    const hasBadWords = await new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       db.all("SELECT word FROM bad_words", [], (err, rows) => {
         if (err) {
           console.error("Database error:", err);
@@ -29,12 +29,25 @@ export async function GET(request) {
           return;
         }
         const badWords = new Set(rows.map((row) => row.word));
-        const hasBadWord = words.some((word) => badWords.has(word));
-        resolve(hasBadWord);
+        const foundBadWords = words.filter((word) => badWords.has(word));
+        resolve({
+          hasBadWords: foundBadWords.length > 0,
+          foundWords: foundBadWords
+        });
       });
     });
 
-    return NextResponse.json({ hasBadWords });
+    // Log when bad words are detected
+    if (result.hasBadWords) {
+      console.log(`[Bad Words] Detected inappropriate search:`, {
+        term: term.substring(0, 100),
+        foundBadWords: result.foundWords,
+        userAgent: request.headers.get('user-agent')?.substring(0, 100) || 'unknown',
+        referer: request.headers.get('referer')?.substring(0, 100) || 'direct'
+      });
+    }
+
+    return NextResponse.json({ hasBadWords: result.hasBadWords });
   } catch (error) {
     console.error("Bad words check error:", error);
     return NextResponse.json({ hasBadWords: false });
