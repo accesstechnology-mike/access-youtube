@@ -7,6 +7,7 @@ export async function middleware(request) {
   const referer = request.headers.get('referer') || ''
   
   // Block known bots and crawlers from hitting search pages
+  // Note: Cloudflare's Bot Fight Mode handles most bots, this is backup detection
   const botPatterns = /bot|crawler|spider|scrapy|wget|curl|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot|googlebot|bingbot|yandex|baidu/i
   const isBot = botPatterns.test(userAgent)
   

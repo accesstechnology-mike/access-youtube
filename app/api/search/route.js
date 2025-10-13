@@ -161,12 +161,17 @@ export async function GET(request) {
   // Log request metadata to help identify source of searches
   const userAgent = request.headers.get('user-agent') || 'unknown';
   const referer = request.headers.get('referer') || 'direct';
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+  
+  // Cloudflare provides real client IP in CF-Connecting-IP header
+  // Fallback to other headers if not behind Cloudflare
+  const ip = request.headers.get('cf-connecting-ip') ||
+             request.headers.get('x-forwarded-for')?.split(',')[0] || 
              request.headers.get('x-real-ip') || 
              'unknown';
   
-  // AGGRESSIVE bot detection patterns
-  const botPatterns = /bot|crawler|spider|scrapy|wget|curl|python|java|okhttp|axios|fetch|headless|phantom|selenium|puppeteer|playwright|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot|googlebot|bingbot|yandex|baidu|semrush|ahrefs|mj12bot|dotbot|blexbot|petalbot/i;
+  // Bot detection patterns (Cloudflare handles most bots, this is backup detection)
+  // Focus on patterns that might slip through Cloudflare's Bot Fight Mode
+  const botPatterns = /scrapy|wget|curl|python|java|okhttp|axios|headless|phantom|selenium|puppeteer|playwright|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot/i;
   const isBot = botPatterns.test(userAgent);
   
   // Detect truncated/suspicious User-Agents (bots faking browser UAs but doing it poorly)
@@ -252,11 +257,13 @@ export async function GET(request) {
     });
   }
   
-  // Log legitimate searches
+  // Log legitimate searches with Cloudflare info
   if (!isSuspiciousBot) {
     console.log(`[YouTube Search] Processing search:`, {
       term: searchTerm.substring(0, 100),
-      termLength: searchTerm.length
+      termLength: searchTerm.length,
+      ipSource: request.headers.get('cf-connecting-ip') ? 'cloudflare' : 'direct',
+      ip: ip.substring(0, 15) // Only show first 15 chars of IP for privacy
     });
   }
 
