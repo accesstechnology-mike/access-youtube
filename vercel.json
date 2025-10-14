@@ -1,0 +1,56 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "routes": [
+    {
+      "src": "/api/search",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(bot|crawler|spider|scrapy|wget|curl|python|java|headless|selenium|puppeteer|playwright|okhttp|axios|scraper|semrush|ahrefs|mj12bot|dotbot|blexbot|petalbot).*"
+        }
+      ],
+      "mitigate": {
+        "action": "deny"
+      }
+    },
+    {
+      "src": "/api/search",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "\\*/\\*"
+        }
+      ],
+      "missing": [
+        {
+          "type": "header",
+          "key": "accept-language"
+        }
+      ],
+      "mitigate": {
+        "action": "deny"
+      }
+    },
+    {
+      "src": "/api/search",
+      "has": [
+        {
+          "type": "header",
+          "key": "referer",
+          "value": ".*accessyoutube\\.org\\.uk.*"
+        },
+        {
+          "type": "query",
+          "key": "term",
+          "value": ".*\\|.*"
+        }
+      ],
+      "mitigate": {
+        "action": "deny"
+      }
+    }
+  ]
+}
+
