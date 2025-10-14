@@ -57,20 +57,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*Chrome/125\\.0\\.0\\.0 Safari/537\\.36$"
-        }
-      ],
-      "mitigate": {
-        "action": "deny"
-      }
-    },
-    {
-      "src": "/api/search",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*AppleWebKit/537\\.36.*Chrome/125\\.0\\.$"
+          "value": ".*Chrome/125.*"
         }
       ],
       "mitigate": {
