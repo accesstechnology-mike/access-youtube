@@ -44,7 +44,7 @@ export async function middleware(request) {
       referer: referer.substring(0, 100),
       reason: isBot ? 'bot pattern' : 'self-referer with truncated UA'
     })
-    return NextResponse.redirect(new URL('/', request.url), 308)
+    return NextResponse.redirect(new URL('/', request.url), 307)
   }
 
   try {
@@ -59,20 +59,20 @@ export async function middleware(request) {
     if (badWordsCheck.ok) {
       const { hasBadWords } = await badWordsCheck.json()
       if (hasBadWords) {
-        return NextResponse.redirect(new URL('/', request.url), 308)
+        return NextResponse.redirect(new URL('/', request.url), 307)
       }
       
       // If the URL contains %20, rewrite it to use + instead
       if (pathname.includes('%20')) {
         const newUrl = new URL(request.url)
         newUrl.pathname = `/${term}`
-        return NextResponse.redirect(newUrl, 308)
+        return NextResponse.redirect(newUrl, 307)
       }
     }
     
     return NextResponse.next()
   } catch (error) {
-    return NextResponse.redirect(new URL('/', request.url), 308)
+    return NextResponse.redirect(new URL('/', request.url), 307)
   }
 }
 
