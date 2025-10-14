@@ -2,7 +2,20 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "routes": [
     {
-      "src": "/api/search",
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*Chrome/125.*"
+        }
+      ],
+      "mitigate": {
+        "action": "deny"
+      }
+    },
+    {
+      "src": "/(.*)",
       "has": [
         {
           "type": "header",
@@ -15,7 +28,7 @@
       }
     },
     {
-      "src": "/api/search",
+      "src": "/(.*)",
       "has": [
         {
           "type": "header",
@@ -27,37 +40,6 @@
         {
           "type": "header",
           "key": "accept-language"
-        }
-      ],
-      "mitigate": {
-        "action": "deny"
-      }
-    },
-    {
-      "src": "/api/search",
-      "has": [
-        {
-          "type": "header",
-          "key": "referer",
-          "value": ".*accessyoutube\\.org\\.uk.*"
-        },
-        {
-          "type": "query",
-          "key": "term",
-          "value": ".*\\|.*"
-        }
-      ],
-      "mitigate": {
-        "action": "deny"
-      }
-    },
-    {
-      "src": "/api/search",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*Chrome/125.*"
         }
       ],
       "mitigate": {
