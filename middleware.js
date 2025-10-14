@@ -6,6 +6,15 @@ export async function middleware(request) {
   const userAgent = request.headers.get('user-agent') || ''
   const referer = request.headers.get('referer') || ''
   
+  // Clear cache on homepage to fix users stuck with old 308 permanent redirects
+  // This header forces browsers to clear their cached redirects
+  if (pathname === '/') {
+    const response = NextResponse.next()
+    response.headers.set('Clear-Site-Data', '"cache"')
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    return response
+  }
+  
   // Block known bots and crawlers from hitting search pages
   // Note: Cloudflare's Bot Fight Mode handles most bots, this is backup detection
   const botPatterns = /bot|crawler|spider|scrapy|wget|curl|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegram|discordbot|googlebot|bingbot|yandex|baidu/i
