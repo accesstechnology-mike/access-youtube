@@ -2,6 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "routes": [
     {
+      "src": "/.*%7C.*",
+      "mitigate": {
+        "action": "deny"
+      }
+    },
+    {
       "src": "/(.*)",
       "has": [
         {
