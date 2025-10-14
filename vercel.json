@@ -50,6 +50,14 @@
       "mitigate": {
         "action": "deny"
       }
+    },
+    {
+      "src": "/api/search",
+      "methods": ["GET"],
+      "rateLimit": {
+        "window": "1m",
+        "max": 10
+      }
     }
   ]
 }
