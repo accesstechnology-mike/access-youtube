@@ -11,7 +11,7 @@
         }
       ],
       "mitigate": {
-        "action": "challenge"
+        "action": "deny"
       }
     },
     {
@@ -30,7 +30,7 @@
         }
       ],
       "mitigate": {
-        "action": "challenge"
+        "action": "deny"
       }
     },
     {
@@ -48,7 +48,7 @@
         }
       ],
       "mitigate": {
-        "action": "challenge"
+        "action": "deny"
       }
     },
     {
