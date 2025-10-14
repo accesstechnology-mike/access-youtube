@@ -77,8 +77,7 @@ export default function ClientSearchResults({ searchTerm }) {
         const res = await fetch(
           `/api/search?term=${encodeURIComponent(searchTerm)}`,
           {
-            next: { revalidate: 3600 },
-            cache: 'force-cache'
+            cache: 'default'  // Use browser's default caching behavior, respects Cache-Control headers
           }
         );
 

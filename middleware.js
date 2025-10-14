@@ -6,11 +6,11 @@ export async function middleware(request) {
   const userAgent = request.headers.get('user-agent') || ''
   const referer = request.headers.get('referer') || ''
   
-  // Clear cache on homepage to fix users stuck with old 308 permanent redirects
-  // This header forces browsers to clear their cached redirects
+  // Clear cache on homepage to fix users stuck with cached API errors or old redirects
+  // This header forces browsers to clear their HTTP cache including cached API responses
   if (pathname === '/') {
     const response = NextResponse.next()
-    response.headers.set('Clear-Site-Data', '"cache"')
+    response.headers.set('Clear-Site-Data', '"cache"')  // Clear HTTP cache
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     return response
   }
