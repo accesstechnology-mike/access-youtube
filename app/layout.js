@@ -1,6 +1,5 @@
 import "./globals.css";
 import { GoogleAnalytics } from '@next/third-parties/google';
-import { Analytics } from "@vercel/analytics/next"
 
 export const viewport = {
   themeColor: "#2e1433",
@@ -28,7 +27,6 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen bg-dark text-light antialiased">
         {children}
         <GoogleAnalytics gaId="G-LGBJ3EV4V7" />
-        <Analytics />
 
       </body>
     </html>

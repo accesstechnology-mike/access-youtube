@@ -13,6 +13,7 @@ export default function VideoResult({ video, priority, index }) {
     <div className="w-full aspect-[4/3]">
       <Link
         href={`/play/${video.id}`}
+        prefetch={false}
         className="block h-full group bg-light rounded-lg overflow-hidden border-2 border-light hover:ring-4 hover:ring-primary-start hover:ring-offset-4 hover:ring-offset-dark transition-all focus-ring"
         aria-label={`Video ${index + 1}, ${video.title} - Alt plus ${getShortcutKey(index)}`}
       >

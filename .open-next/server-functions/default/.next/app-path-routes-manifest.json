@@ -1,0 +1,8 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/check-bad-words/route": "/api/check-bad-words",
+  "/api/search/route": "/api/search",
+  "/page": "/",
+  "/[...term]/page": "/[...term]",
+  "/play/[videoId]/page": "/play/[videoId]"
+}

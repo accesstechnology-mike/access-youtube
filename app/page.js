@@ -18,6 +18,7 @@ export default function HomePage() {
               width={180}
               height={62}
               priority
+              unoptimized
               className="mb-12 opacity-90"
             />
 
