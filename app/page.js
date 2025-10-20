@@ -25,7 +25,7 @@ export default function HomePage() {
             <SearchForm autoFocus={true} />
             
             {/* Test deployment - hidden text */}
-            <div className="hidden">Deploy test - {new Date().toISOString()}</div>
+            <div className="hidden">Deploy test - Cloudflare Workers</div>
           </div>
         </div>
       </div>
