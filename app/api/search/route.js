@@ -155,12 +155,23 @@ async function getYouTubeSearchResults(searchTerm, retryCount = 0, maxRetries = 
 }
 
 export async function GET(request) {
+  const startTime = Date.now();
   const { searchParams } = new URL(request.url);
   const term = searchParams.get('term');
   
   // Log request metadata to help identify source of searches
   const userAgent = request.headers.get('user-agent') || 'unknown';
   const referer = request.headers.get('referer') || 'direct';
+  
+  // Enhanced logging for debugging
+  console.log(`[API Request] ${request.method} ${request.url}`, {
+    timestamp: new Date().toISOString(),
+    userAgent: userAgent.substring(0, 100),
+    referer: referer.substring(0, 100),
+    cfRay: request.headers.get('cf-ray'),
+    cfCountry: request.headers.get('cf-ipcountry'),
+    cfConnectingIP: request.headers.get('cf-connecting-ip')?.substring(0, 15)
+  });
   
   // Cloudflare provides real client IP in CF-Connecting-IP header
   // Fallback to other headers if not behind Cloudflare
@@ -282,6 +293,13 @@ export async function GET(request) {
 
     // Only cache successful responses with actual videos
     if (videos.length > 0) {
+      const responseTime = Date.now() - startTime;
+      console.log(`[API Success] Search completed in ${responseTime}ms`, {
+        searchTerm: searchTerm.substring(0, 50),
+        videoCount: videos.length,
+        responseTime
+      });
+      
       'use cache'
       return NextResponse.json({
         searchTerm: searchTerm,
@@ -290,12 +308,25 @@ export async function GET(request) {
     }
     
     // Don't cache empty results - might be temporary failure
+    const responseTime = Date.now() - startTime;
+    console.log(`[API Warning] Empty results in ${responseTime}ms`, {
+      searchTerm: searchTerm.substring(0, 50),
+      responseTime
+    });
+    
     return NextResponse.json({
       searchTerm: searchTerm,
       videos: [],
     });
   } catch (error) {
-    console.error("Error during scraping:", error);
+    const responseTime = Date.now() - startTime;
+    console.error(`[API Error] Search failed in ${responseTime}ms:`, {
+      searchTerm: searchTerm?.substring(0, 50),
+      error: error.message,
+      errorType: error.constructor.name,
+      stack: error.stack?.split('\n').slice(0, 3),
+      responseTime
+    });
     
     // Provide more specific error messages based on the error type
     let errorMessage = error.message || "Unknown error";
@@ -307,7 +338,7 @@ export async function GET(request) {
     }
     
     // Return error status so Next.js doesn't cache failures
-    console.log(`[YouTube Search] Returning error due to: ${errorMessage}`);
+    console.log(`[API Error] Returning error due to: ${errorMessage}`);
     return NextResponse.json({
       searchTerm: searchTerm,
       videos: [],
