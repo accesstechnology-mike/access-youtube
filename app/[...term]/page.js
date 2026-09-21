@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import ClientSearchResults from "./ClientSearchResults";
 
 export async function generateMetadata({ params }) {
-  const { term } = params;
+  const { term } = await params;
   const rawTerm = term?.[0];
   if (!rawTerm) return { title: 'Search YouTube Videos' };
   
