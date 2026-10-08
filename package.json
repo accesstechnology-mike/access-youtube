@@ -14,7 +14,7 @@
     "@scrappy-scraper/youtube_scraper": "^1.0.30",
     "googleapis": "^161.0.0",
     "js-cookie": "^3.0.5",
-    "lodash": "^4.17.21",
+    "lodash": "^4.18.1",
     "next": "canary",
     "react": "latest",
     "react-dom": "latest",
